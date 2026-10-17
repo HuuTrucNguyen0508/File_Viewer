@@ -4,6 +4,10 @@ A read-only Android app that opens any file: code with syntax highlighting, imag
 
 What each format gets is listed in [docs/SUPPORT.md](docs/SUPPORT.md). The design is in [docs/PLAN.md](docs/PLAN.md).
 
+## Download
+
+Get the APK from the [latest release](https://github.com/HuuTrucNguyen0508/File_Viewer/releases/latest), copy it to an Android 11+ phone and open it.
+
 ## Build
 
 Requires JDK 17 and the Android SDK (compileSdk 37).

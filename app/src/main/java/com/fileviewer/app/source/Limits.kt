@@ -41,6 +41,34 @@ object Limits {
     /** ZIP subtype detection looks up at most this many marker entries. */
     const val ZIP_INSPECT_ENTRIES = 16
 
+    /** Decompressed bytes of one XML part (document.xml, a sheet, a chapter) read by a document preview. */
+    const val MAX_DOC_PART_BYTES = 64L shl 20
+
+    /** Decompressed bytes read across all parts of one document preview (zip-bomb bound). */
+    const val MAX_DOC_TOTAL_BYTES = 256L shl 20
+
+    /** Characters of HTML a document preview produces per page; the rest is cut with a note. */
+    const val MAX_DOC_HTML_CHARS = 4_000_000
+
+    /** One embedded image served to a document preview. */
+    const val MAX_DOC_IMAGE_BYTES = 32L shl 20
+
+    /** Spreadsheet preview: rows and columns shown per sheet. */
+    const val MAX_SHEET_ROWS = 2_000
+    const val MAX_SHEET_COLS = 100
+
+    /** Shared strings kept from an XLSX workbook. */
+    const val MAX_SHARED_STRINGS = 500_000
+
+    /** Sheets, slides, or EPUB chapters listed per document. */
+    const val MAX_DOC_SECTIONS = 2_000
+
+    /** Element nesting accepted in document XML and RTF groups. */
+    const val MAX_DOC_NESTING = 512
+
+    /** Bytes of a legacy binary DOC/XLS/PPT scanned for readable text. */
+    const val MAX_LEGACY_SCAN_BYTES = 32L shl 20
+
     /** Longest edge of a decoded image bitmap; telephoto subsamples beyond this. */
     const val MAX_IMAGE_DECODE_PX = 4096
 

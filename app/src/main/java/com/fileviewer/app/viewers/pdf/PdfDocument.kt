@@ -5,6 +5,7 @@ import android.graphics.Color
 import android.graphics.pdf.PdfRenderer
 import android.os.ParcelFileDescriptor
 import android.util.LruCache
+import androidx.core.graphics.createBitmap
 import com.fileviewer.app.source.Limits
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
@@ -48,7 +49,7 @@ class PdfDocument private constructor(private val renderer: PdfRenderer, private
             val s = Limits.MAX_PDF_PAGE_PX.toFloat() / longest
             w = (w * s).toInt().coerceAtLeast(1); h = (h * s).toInt().coerceAtLeast(1)
         }
-        val bitmap = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888)
+        val bitmap = createBitmap(w, h)
         bitmap.eraseColor(Color.WHITE)
         renderer.openPage(page).use { it.render(bitmap, null, null, PdfRenderer.Page.RENDER_MODE_FOR_DISPLAY) }
         cache.put(key(page, widthPx), bitmap)

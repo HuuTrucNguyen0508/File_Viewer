@@ -77,7 +77,7 @@ private fun ZoomableImage(model: Any, description: String, onSwitch: (ViewerId) 
     if (failed) {
         Message(
             "This image couldn't be decoded",
-            "The format may be unsupported on this device, or the file is damaged.",
+            detail = "The format may be unsupported on this device, or the file is damaged.",
             actions = listOf("Show info" to { onSwitch(ViewerId.Info) }, "Show hex" to { onSwitch(ViewerId.Hex) }),
         )
         return

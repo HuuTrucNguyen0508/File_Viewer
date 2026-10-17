@@ -16,6 +16,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
@@ -80,7 +81,7 @@ private fun Fact(label: String, value: String, mono: Boolean = false) {
 private fun HashSection(source: FileSource) {
     val scope = rememberCoroutineScope()
     var job by remember { mutableStateOf<Job?>(null) }
-    var hashed by remember { mutableStateOf(0L) }
+    var hashed by remember { mutableLongStateOf(0L) }
     var result by remember { mutableStateOf<Map<String, String>?>(null) }
     var error by remember { mutableStateOf<String?>(null) }
     Section("Checksums")

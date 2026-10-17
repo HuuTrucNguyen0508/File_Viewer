@@ -1,6 +1,7 @@
 package com.fileviewer.app.browser
 
 import android.content.Context
+import androidx.core.content.edit
 import org.json.JSONArray
 import org.json.JSONObject
 
@@ -30,7 +31,7 @@ class RecentsStore(context: Context) {
     private fun save(list: List<Recent>) {
         val arr = JSONArray()
         list.forEach { arr.put(JSONObject().put("uri", it.isUri).put("value", it.value).put("name", it.name).put("at", it.openedAt)) }
-        prefs.edit().putString(KEY, arr.toString()).apply()
+        prefs.edit { putString(KEY, arr.toString()) }
     }
 
     private companion object {

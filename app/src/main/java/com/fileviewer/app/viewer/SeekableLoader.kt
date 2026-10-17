@@ -45,7 +45,7 @@ fun rememberSeekable(source: FileSource, requireDescriptor: Boolean = false): Se
 fun WithSeekable(source: FileSource, requireDescriptor: Boolean = false, content: @Composable (SeekableSource) -> Unit) {
     when (val s = rememberSeekable(source, requireDescriptor)) {
         is SeekState.Copying -> CopyProgress(s.copied, s.total)
-        is SeekState.Failed -> Message("Couldn't read this file", s.message)
+        is SeekState.Failed -> Message("Couldn't read this file", detail = s.message)
         is SeekState.Ready -> content(s.seekable)
     }
 }

@@ -31,6 +31,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import androidx.core.net.toUri
 import androidx.lifecycle.compose.LifecycleResumeEffect
 import com.fileviewer.app.ui.components.FileRow
 import com.fileviewer.app.ui.components.FolderTile
@@ -100,7 +101,7 @@ fun HomeScreen(
                     detail = if (r.isUri) "From another app" else File(r.value).parent.orEmpty(),
                     trailing = formatDate(r.openedAt),
                     tile = { NameTile(r.name) },
-                    onClick = { if (r.isUri) onOpenUri(Uri.parse(r.value), true) else onOpenPath(File(r.value)) },
+                    onClick = { if (r.isUri) onOpenUri(r.value.toUri(), true) else onOpenPath(File(r.value)) },
                 )
             }
         }

@@ -72,6 +72,8 @@ fun CodeEditorView(
                 typefaceText = mono(ctx)
                 typefaceLineNumber = mono(ctx)
                 setTextSize(13f)
+                // A viewer shows the characters in the file: "->" stays two glyphs.
+                isLigatureEnabled = false
                 setLineSpacing(2f, 1.1f)
                 isCursorAnimationEnabled = false
                 setHighlightCurrentLine(false)

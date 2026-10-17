@@ -2,6 +2,7 @@ package com.fileviewer.app.detect
 
 import com.fileviewer.app.source.Limits
 import com.fileviewer.app.source.SeekableSource
+import com.fileviewer.app.source.readFully
 import org.apache.commons.compress.archivers.zip.ZipFile
 
 /**
@@ -23,7 +24,7 @@ object ZipInspector {
                 return z.getEntry(name) != null
             }
             val mimetype = z.getEntry("mimetype")?.takeIf { it.size in 1..200 }?.let { e ->
-                z.getInputStream(e).use { String(it.readNBytes(200)).trim() }
+                z.getInputStream(e).use { val buf = ByteArray(200); String(buf, 0, it.readFully(buf)).trim() }
             }
             when {
                 mimetype == "application/epub+zip" -> FileKind.Document(DocumentFormat.EPUB)

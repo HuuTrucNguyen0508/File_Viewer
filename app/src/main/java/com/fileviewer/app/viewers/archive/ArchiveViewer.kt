@@ -66,7 +66,7 @@ private fun Listing(source: FileSource, format: ArchiveFormat, seekable: Seekabl
     result.onFailure {
         Message(
             "This archive couldn't be read",
-            it.message,
+            detail = it.message,
             actions = listOf("Show info" to { onSwitch(ViewerId.Info) }, "Show hex" to { onSwitch(ViewerId.Hex) }),
         )
     }

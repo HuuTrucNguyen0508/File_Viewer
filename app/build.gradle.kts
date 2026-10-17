@@ -15,6 +15,10 @@ android {
     compileOptions { sourceCompatibility = JavaVersion.VERSION_17; targetCompatibility = JavaVersion.VERSION_17 }
     packaging { resources.excludes += setOf("/META-INF/{AL2.0,LGPL2.1}", "/META-INF/LICENSE*", "/META-INF/NOTICE*") }
     testOptions { unitTests.isReturnDefaultValues = true }
+    lint {
+        // Versions are pinned on purpose (see docs/PLAN.md "Build pins"); upgrades are their own change.
+        disable += setOf("GradleDependency", "NewerVersionAvailable", "AndroidGradlePluginVersion", "OldTargetApi")
+    }
 }
 
 dependencies {

@@ -26,6 +26,7 @@ import androidx.media3.common.MediaItem
 import androidx.media3.common.MediaMetadata
 import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
+import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.ui.PlayerView
 import com.fileviewer.app.detect.FileKind
@@ -61,6 +62,7 @@ fun MediaViewer(source: FileSource, kind: FileKind.Media, onSwitch: (ViewerId) -
     u.onSuccess { Player(source, it, kind, onSwitch) }
 }
 
+@androidx.annotation.OptIn(UnstableApi::class)
 @Composable
 private fun Player(source: FileSource, uri: Uri, kind: FileKind.Media, onSwitch: (ViewerId) -> Unit) {
     val context = LocalContext.current

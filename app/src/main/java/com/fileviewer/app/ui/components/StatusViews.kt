@@ -52,8 +52,8 @@ fun CopyProgress(copied: Long, total: Long?, modifier: Modifier = Modifier) {
 @Composable
 fun Message(
     title: String,
-    detail: String? = null,
     modifier: Modifier = Modifier,
+    detail: String? = null,
     actions: List<Pair<String, () -> Unit>> = emptyList(),
 ) {
     Column(

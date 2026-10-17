@@ -74,7 +74,7 @@ private fun PdfBody(src: SeekableSource, onSwitch: (ViewerId) -> Unit) {
             val err = doc!!.exceptionOrNull()
             Message(
                 if (err is SecurityException) "This PDF is password-protected" else "This PDF couldn't be opened",
-                if (err is SecurityException) "Password-protected PDFs aren't supported yet." else err?.message,
+                detail = if (err is SecurityException) "Password-protected PDFs aren't supported yet." else err?.message,
                 actions = listOf("Show info" to { onSwitch(ViewerId.Info) }, "Show hex" to { onSwitch(ViewerId.Hex) }),
             )
         }

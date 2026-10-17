@@ -54,7 +54,7 @@ fun CodeViewer(source: FileSource, kind: FileKind, highlight: Boolean) {
     when (val b = bytes) {
         Bytes.Loading -> Loading()
         Bytes.TooLarge -> PagedTextViewer(source, (kind as? FileKind.Text)?.charset)
-        is Bytes.Failed -> Message("Couldn't read this file", b.message)
+        is Bytes.Failed -> Message("Couldn't read this file", detail = b.message)
         is Bytes.Ready -> LoadedCode(b.data, kind, highlight)
     }
 }

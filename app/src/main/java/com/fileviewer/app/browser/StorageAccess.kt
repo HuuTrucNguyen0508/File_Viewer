@@ -2,7 +2,7 @@ package com.fileviewer.app.browser
 
 import android.content.Context
 import android.content.Intent
-import android.net.Uri
+import androidx.core.net.toUri
 import android.os.Environment
 import android.os.storage.StorageManager
 import android.provider.Settings
@@ -13,7 +13,7 @@ object StorageAccess {
 
     /** The system "All files access" page for this app. */
     fun requestIntent(context: Context): Intent =
-        Intent(Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION, Uri.parse("package:${context.packageName}"))
+        Intent(Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION, "package:${context.packageName}".toUri())
 
     data class Location(val label: String, val dir: File)
 

@@ -67,7 +67,7 @@ fun FolderScreen(dir: File, state: AppState, onBack: () -> Unit, onFolder: (File
         val files = loaded?.getOrNull()
         when {
             loaded == null -> item { Box(Modifier.fillMaxWidth().heightIn(min = 240.dp)) { Loading() } }
-            files == null -> item { Message("This folder can't be read", "Check that All files access is allowed.") }
+            files == null -> item { Message("This folder can't be read", detail = "Check that All files access is allowed.") }
             files.isEmpty() -> item { Message("This folder is empty") }
             else -> items(files, key = { it.path }) { f ->
                 if (f.isDirectory) {

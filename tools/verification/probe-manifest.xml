@@ -1,0 +1,8 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android" package="com.fileviewer.fixture">
+    <uses-sdk android:minSdkVersion="30" android:targetSdkVersion="30"/>
+    <application android:label="File Viewer verification" android:debuggable="true">
+        <activity android:name="com.fileviewer.fixture.DeviceProbe$Sender" android:exported="true"/>
+        <provider android:name="com.fileviewer.fixture.DeviceProbe$Files" android:authorities="com.fileviewer.fixture.files" android:exported="false" android:grantUriPermissions="true"/>
+    </application>
+    <instrumentation android:name="com.fileviewer.fixture.DeviceProbe" android:targetPackage="com.fileviewer.fixture"/>
+</manifest>

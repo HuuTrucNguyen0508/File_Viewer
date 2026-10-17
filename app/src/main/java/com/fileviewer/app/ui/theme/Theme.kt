@@ -2,6 +2,7 @@ package com.fileviewer.app.ui.theme
 
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Shapes
 import androidx.compose.material3.darkColorScheme
@@ -28,7 +29,8 @@ fun FileViewerTheme(dark: Boolean = isSystemInDarkTheme(), content: @Composable 
         error = p.danger, onError = p.paper,
         inverseSurface = p.ink, inverseOnSurface = p.paper,
     )
-    CompositionLocalProvider(LocalPalette provides p) {
+    // No Surface wraps the screens, so set the default content color here or text falls back to black.
+    CompositionLocalProvider(LocalPalette provides p, LocalContentColor provides p.ink) {
         MaterialTheme(
             colorScheme = scheme,
             typography = AppTypography,

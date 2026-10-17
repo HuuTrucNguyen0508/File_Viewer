@@ -29,8 +29,8 @@ class GlyphSection(val title: String, val codePoints: List<Int>)
 
 object GlyphSets {
     private val BLOCKS = listOf(
-        "Basic Latin" to (0x20..0x7E),
-        "Latin-1 Supplement" to (0xA0..0xFF),
+        "Basic Latin" to (0x21..0x7E),
+        "Latin-1 Supplement" to (0xA1..0xFF),
         "Latin Extended-A" to (0x100..0x17F),
         "Greek and Coptic" to (0x370..0x3FF),
         "Cyrillic" to (0x400..0x4FF),

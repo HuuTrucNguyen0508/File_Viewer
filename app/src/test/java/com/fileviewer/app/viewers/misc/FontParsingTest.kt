@@ -119,7 +119,7 @@ class FontParsingTest {
         val coverage = CmapTable.parse(FontFixtures.cmapTable(Triple(3, 10, FontFixtures.format12(0x20..0x7E, 0x410..0x415, 0x1F600..0x1F602))))!!
         val sections = GlyphSets.sections(coverage)
         assertEquals(listOf("Basic Latin", "Cyrillic", "More characters in this font"), sections.map { it.title })
-        assertEquals(95, sections[0].codePoints.size)
+        assertEquals(94, sections[0].codePoints.size)
         assertEquals((0x410..0x415).toList(), sections[1].codePoints)
         assertEquals(listOf(0x1F600, 0x1F601, 0x1F602), sections[2].codePoints)
     }

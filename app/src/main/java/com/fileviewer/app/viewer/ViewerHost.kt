@@ -6,6 +6,10 @@ import com.fileviewer.app.detect.FileKind
 import com.fileviewer.app.source.FileSource
 import com.fileviewer.app.viewers.archive.ArchiveViewer
 import com.fileviewer.app.viewers.code.CodeViewer
+import com.fileviewer.app.viewers.data.RenderedViewer
+import com.fileviewer.app.viewers.data.csv.CsvViewer
+import com.fileviewer.app.viewers.data.json.JsonViewer
+import com.fileviewer.app.viewers.data.sqlite.SqliteViewer
 import com.fileviewer.app.viewers.documents.DocumentViewer
 import com.fileviewer.app.viewers.hex.HexViewer
 import com.fileviewer.app.viewers.image.ImageViewer
@@ -39,6 +43,10 @@ fun ViewerHost(
         ViewerId.Font -> FontViewer(source, kind as FileKind.Font, onSwitch)
         ViewerId.Apk -> ApkViewer(source, onSwitch)
         ViewerId.Cert -> CertViewer(source, onSwitch)
+        ViewerId.Rendered -> RenderedViewer(source, (kind as FileKind.Data).format, onSwitch)
+        ViewerId.Table -> CsvViewer(source, (kind as FileKind.Data).format, onSwitch)
+        ViewerId.Tree -> JsonViewer(source, kind as FileKind.Data, onSwitch)
+        ViewerId.Database -> SqliteViewer(source, onSwitch)
     }
 }
 

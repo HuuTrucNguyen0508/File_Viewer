@@ -13,6 +13,7 @@ import com.fileviewer.app.source.Limits
 enum class ViewerId(val label: String) {
     Code("Code"), Text("Text"), Image("Image"), Pdf("Pages"), Media("Play"), Preview("Preview"), Archive("Contents"), Hex("Hex"), Info("Info"),
     Font("Specimen"), Apk("App"), Cert("Certificate"),
+    Rendered("Rendered"), Table("Table"), Tree("Tree"), Database("Database"),
 }
 
 /**
@@ -24,7 +25,13 @@ object ViewerRegistry {
     fun viewersFor(kind: FileKind, archiveDepth: Int = 0, sdkInt: Int = Build.VERSION.SDK_INT): List<ViewerId> {
         val primary: List<ViewerId> = when (kind) {
             is FileKind.Text -> listOf(if (kind.language != null) ViewerId.Code else ViewerId.Text)
-            is FileKind.Data -> if (kind.format == DataFormat.SQLITE) listOf(ViewerId.Info) else listOf(ViewerId.Code)
+            is FileKind.Data -> when (kind.format) {
+                DataFormat.MARKDOWN, DataFormat.HTML -> listOf(ViewerId.Rendered, ViewerId.Code)
+                DataFormat.JSON, DataFormat.JSONL -> listOf(ViewerId.Tree, ViewerId.Code)
+                DataFormat.CSV, DataFormat.TSV -> listOf(ViewerId.Table)
+                DataFormat.SQLITE -> listOf(ViewerId.Database)
+                DataFormat.XML, DataFormat.YAML -> listOf(ViewerId.Code)
+            }
             is FileKind.Image -> when {
                 kind.format == ImageFormat.SVG -> listOf(ViewerId.Image, ViewerId.Code)
                 imageDecodable(kind.format, sdkInt) -> listOf(ViewerId.Image)
@@ -61,7 +68,6 @@ object ViewerRegistry {
             "AVIF images need Android 12 or later to display."
         kind is FileKind.Image && !imageDecodable(kind.format, sdkInt) ->
             "${kind.format.display} images can't be displayed yet."
-        kind is FileKind.Data && kind.format == DataFormat.SQLITE -> "Browsing SQLite tables is planned."
         kind is FileKind.Font && kind.format == FontFormat.WOFF2 ->
             "WOFF2 fonts can't be previewed on Android. File info and raw bytes are below."
         else -> null

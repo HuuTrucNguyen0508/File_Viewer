@@ -74,8 +74,11 @@ Playback uses ExoPlayer and the phone's own decoders. The container is always de
 | Format | Support | Notes |
 |---|---|---|
 | SQLite databases | Fallback | Table browser **planned** |
-| Fonts (TTF, OTF, WOFF, WOFF2) | Fallback | Sample text and glyph grid **planned** |
-| APK details (name, icon, permissions) | Fallback | APK info **planned**; contents browsable now |
-| Certificates (PEM, CRT) | Full (as text) | Parsed fields **planned** |
+| Fonts (TTF, OTF, TTC first face) | Full | Name in its own face, sizes from 12 to 56, a field to try your own text (edits nothing on disk), glyph grid with code point and Unicode name |
+| WOFF | Full if the device loads it | Android may refuse WOFF; the viewer then says so and offers Info and Hex |
+| WOFF2 | Fallback | Android can't load it; Info and Hex, with a note |
+| APK (also inside archives) | Full | Icon, name, package, version, min and target Android, permissions with sensitive ones flagged, signer certificates and SHA-256. Contents, Hex and Info stay one tap away. APK bundles (APKS, XAPK) open as archives |
+| Certificates and keys (PEM, CRT, CER, DER, P7B) | Full | Subject, issuer, validity with an expired badge, serial, algorithms, key size, alternative names, key usage, SHA-1 and SHA-256 fingerprints; certificate chains list every certificate. Public keys show algorithm, size and fingerprint. Private keys are named and never displayed; Text still opens the raw file |
+| PKCS#12 (.p12, .pfx), certificate requests (.csr) | Fallback | Password-protected or not parsed; Hex and Text |
 | Executables (ELF, PE, Mach-O), class, dex, wasm, disk images | Fallback | Identified by signature in Info |
 | Unknown binary | Fallback | Hex view handles files of any size without loading them into memory |

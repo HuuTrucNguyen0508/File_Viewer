@@ -48,7 +48,7 @@ object GlyphSets {
         val named = BLOCKS.mapNotNull { (title, r) ->
             coverage.within(r, MiscLimits.MAX_GLYPHS_PER_SECTION).takeIf { it.isNotEmpty() }?.let { GlyphSection(title, it) }
         }
-        val other = coverage.outside(BLOCKS.map { it.second } + listOf(0..0x1F, 0x7F..0x9F), MiscLimits.MAX_OTHER_GLYPHS)
+        val other = coverage.outside(BLOCKS.map { it.second } + listOf(0..0x20, 0x7F..0xA0), MiscLimits.MAX_OTHER_GLYPHS)
         return if (other.isEmpty()) named else named + GlyphSection("More characters in this font", other)
     }
 }

@@ -103,7 +103,7 @@ object ExtensionTable {
         lang("graphql", "graphql", "gql", "graphqls")
 
         listOf("txt", "text", "nfo", "me", "1st", "asc", "srt", "vtt", "sub", "lst", "list", "lrc", "readme",
-            "cue", "m3u", "m3u8", "pls", "gitkeep", "keep", "pem", "crt", "cer", "key", "pub", "csr", "gpg",
+            "cue", "m3u", "m3u8", "pls", "gitkeep", "keep", "key", "pub", "csr", "gpg",
             "sig", "srx", "org", "adoc", "asciidoc", "textile", "wiki", "mediawiki", "tsv-schema", "ass", "ssa",
             "nix", "tf", "tfvars", "hcl", "hs", "lhs", "elm", "ex", "exs", "erl", "hrl", "scala", "sc", "sbt",
             "ml", "mli", "nim", "cr", "d", "v", "sv", "vhd", "vhdl", "asm", "s", "f", "f90", "f95", "for",
@@ -141,7 +141,7 @@ object ExtensionTable {
             "ogg" to MediaFormat.OGG, "oga" to MediaFormat.OGG, "ogv" to MediaFormat.OGG, "opus" to MediaFormat.OPUS,
             "wav" to MediaFormat.WAV, "amr" to MediaFormat.AMR).forEach { (e, f) -> put(e, FileKind.Media(f)) }
         mapOf("zip" to null, "jar" to "JAR", "war" to "JAR", "ear" to "JAR", "aar" to "AAR", "apk" to "APK",
-            "apks" to "APK", "xapk" to "APK", "aab" to "App Bundle", "whl" to "Python wheel", "nupkg" to "NuGet",
+            "apks" to "APK bundle", "xapk" to "APK bundle", "aab" to "App Bundle", "whl" to "Python wheel", "nupkg" to "NuGet",
             "vsix" to "VSIX", "crx" to null, "xpi" to "Firefox add-on", "kmz" to null, "cbz" to "Comic book",
             "ipa" to "iOS app", "zipx" to null).forEach { (e, sub) -> put(e, FileKind.Archive(ArchiveFormat.ZIP, sub)) }
         put("tar", FileKind.Archive(ArchiveFormat.TAR)); put("gz", FileKind.Archive(ArchiveFormat.GZIP))
@@ -155,6 +155,7 @@ object ExtensionTable {
             "odp" to DocumentFormat.ODP, "epub" to DocumentFormat.EPUB, "rtf" to DocumentFormat.RTF,
             "doc" to DocumentFormat.DOC, "dot" to DocumentFormat.DOC, "xls" to DocumentFormat.XLS,
             "ppt" to DocumentFormat.PPT, "pps" to DocumentFormat.PPT).forEach { (e, f) -> put(e, FileKind.Document(f)) }
+        listOf("pem", "crt", "cer", "der", "p7b", "p7c").forEach { put(it, FileKind.Certificate) }
         mapOf("ttf" to FontFormat.TTF, "otf" to FontFormat.OTF, "woff" to FontFormat.WOFF, "woff2" to FontFormat.WOFF2,
             "ttc" to FontFormat.TTC).forEach { (e, f) -> put(e, FileKind.Font(f)) }
         mapOf("exe" to "Windows executable", "dll" to "Windows library", "so" to "Shared library",

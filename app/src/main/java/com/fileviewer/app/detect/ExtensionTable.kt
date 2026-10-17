@@ -75,7 +75,7 @@ object ExtensionTable {
         lang("css", "css")
         lang("scss", "scss", "sass")
         lang("less", "less")
-        lang("html", "xhtml", "shtml", "vue", "svelte", "astro", "jsp", "asp", "aspx", "cshtml", "razor")
+        lang("html", "shtml", "vue", "svelte", "astro", "jsp", "asp", "aspx", "cshtml", "razor")
         lang("handlebars", "hbs", "handlebars", "mustache")
         lang("pug", "pug", "jade")
         lang("xml", "xsd", "plist", "csproj", "vbproj", "fsproj", "props", "targets", "nuspec", "resx", "xaml",
@@ -83,7 +83,6 @@ object ExtensionTable {
             "manifest", "glade", "ui", "tmx", "dtd", "ent", "xul", "rdf", "owl", "fxml", "smil")
         lang("xsl", "xsl", "xslt")
         lang("jsonc", "jsonc", "code-workspace", "code-snippets")
-        lang("jsonl", "jsonl", "ndjson")
         lang("toml", "toml")
         lang("ini", "ini", "cfg", "conf", "properties", "prefs", "desktop", "service", "socket", "timer",
             "mount", "target", "inf", "reg", "url", "directory", "theme", "repo")
@@ -114,9 +113,10 @@ object ExtensionTable {
             "au3", "applescript", "scpt", "ps1xml", "rc", "def", "map", "dot", "gv", "puml", "plantuml", "mmd")
             .forEach { putIfAbsent(it, plain("Plain text")) }
 
-        put("md", FileKind.Data(DataFormat.MARKDOWN)); put("markdown", FileKind.Data(DataFormat.MARKDOWN))
-        put("mkd", FileKind.Data(DataFormat.MARKDOWN)); put("mdown", FileKind.Data(DataFormat.MARKDOWN))
-        put("html", FileKind.Data(DataFormat.HTML)); put("htm", FileKind.Data(DataFormat.HTML))
+        listOf("md", "markdown", "mkd", "mdown", "mdx").forEach { put(it, FileKind.Data(DataFormat.MARKDOWN)) }
+        listOf("html", "htm", "xhtml").forEach { put(it, FileKind.Data(DataFormat.HTML)) }
+        put("jsonl", FileKind.Data(DataFormat.JSONL)); put("ndjson", FileKind.Data(DataFormat.JSONL))
+        put("psv", FileKind.Data(DataFormat.CSV))
         put("json", FileKind.Data(DataFormat.JSON)); put("geojson", FileKind.Data(DataFormat.JSON))
         put("webmanifest", FileKind.Data(DataFormat.JSON)); put("har", FileKind.Data(DataFormat.JSON))
         put("ipynb", FileKind.Data(DataFormat.JSON)); put("json5", FileKind.Data(DataFormat.JSON))

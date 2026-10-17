@@ -7,6 +7,8 @@ Every file opens. Each format is one of:
 - **Fallback**: no dedicated viewer yet. The file opens in Info and Hex, and can be forced into Text.
 - **Planned**: a phase-2 viewer will cover it. Until then it behaves as noted.
 
+Previews are bounded: a document stops after about 4 million characters of output, any one part over 64 MB or 256 MB unpacked in total is refused, and embedded images over 32 MB are not shown.
+
 Any file can be switched to **Text** (with an encoding picker), **Hex**, and **Info** from the viewer chips, so a misdetected file is never stuck.
 
 ## Text and code
@@ -22,7 +24,7 @@ Any file can be switched to **Text** (with an encoding picker), **Hex**, and **I
 | Markdown, HTML | Full (source) | Rendered view **planned** |
 | JSON | Full (source) | Collapsible tree **planned** |
 | CSV, TSV | Full (source) | Table view **planned** |
-| RTF | Preview | Raw RTF source; a rendered view is **planned** |
+| RTF | Preview | Paragraphs, bold/italic/underline, accented and Unicode characters, simple tables. Fonts, colors, pictures, headers and footnotes are skipped. Raw source under Text |
 
 ## Images
 
@@ -40,9 +42,12 @@ Any file can be switched to **Text** (with an encoding picker), **Hex**, and **I
 |---|---|---|
 | PDF | Full | Page list, pinch zoom with sharp re-rendering, page indicator, jump to page |
 | Password-protected PDF | Fallback | Shows a clear message |
-| DOCX, XLSX, PPTX, ODT, ODS, ODP | Preview | Browse the files inside the package; a document preview is **planned** |
-| EPUB | Preview | Browse the files inside; a reader is **planned** |
-| DOC, XLS, PPT (legacy binary) | Fallback | Text extraction **planned** |
+| DOCX, ODT | Preview | Paragraphs, headings, bold/italic/underline, lists, tables, embedded PNG/JPEG/GIF/WebP/SVG images; links shown as text. Headers, footers, comments and footnotes are left out; EMF/WMF drawings show a placeholder. Contents lists the files inside |
+| XLSX, ODS | Preview | One tab per sheet; text, numbers, booleans, errors, dates, percentages and fixed decimals, with column letters and row numbers. Formulas show their last saved value; merged cells, charts and cell styling aren't shown. Each sheet stops at 2,000 rows and 100 columns, with a note |
+| PPTX, ODP | Preview | Every slide in order as a card: title, text with bullets, tables, pictures. Slide layout, speaker notes, charts and SmartArt aren't shown |
+| EPUB (2 and 3) | Preview | Chapter list from the book's table of contents, previous/next, images from the book. The book's own CSS, scripts and internal links are dropped |
+| Password-protected DOCX, XLSX, PPTX | Fallback | Shows a clear message |
+| DOC, XLS, PPT (legacy binary) | Fallback | Best-effort text: readable runs pulled from the file, labelled as such. Formatting, binary numbers and CJK text are not recovered |
 
 ## Audio and video
 

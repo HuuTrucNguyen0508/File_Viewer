@@ -40,6 +40,9 @@ object FileTypeDetector {
         val sniff = TextSniffer.sniff(header, length, truncated)
         if (byName != null) {
             if (byName == FileKind.Certificate && sniff.isText && String(header, 0, length, Charsets.ISO_8859_1).contains(PEM_BEGIN)) return byName
+            if (byName.isTextual && sniff.isText && MarkdownSniff.isCandidateName(name) && byName == FileKind.Text(null, "Plain text") &&
+                MarkdownSniff.looksLikeMarkdown(String(header, sniff.bomLength, length - sniff.bomLength, sniff.charset))
+            ) return FileKind.Data(DataFormat.MARKDOWN)
             if (byName.isTextual) return if (sniff.isText) withCharset(byName, sniff) else FileKind.Binary()
             // A binary-type name with no matching signature but clearly textual content is text.
             if (!(sniff.isText && length > 0)) return byName

@@ -92,7 +92,7 @@ enum class DocumentFormat(val display: String, val zipBased: Boolean) {
 
 /** [language] is the grammar used for the source view, or null when the format is binary. */
 enum class DataFormat(val display: String, val language: String?) {
-    MARKDOWN("Markdown", "markdown"), HTML("HTML", "html"), JSON("JSON", "json"),
+    MARKDOWN("Markdown", "markdown"), HTML("HTML", "html"), JSON("JSON", "json"), JSONL("JSON Lines", "jsonl"),
     CSV("CSV table", null), TSV("TSV table", null), XML("XML", "xml"), YAML("YAML", "yaml"),
     SQLITE("SQLite database", null),
 }

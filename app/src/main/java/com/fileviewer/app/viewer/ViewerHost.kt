@@ -6,6 +6,7 @@ import com.fileviewer.app.detect.FileKind
 import com.fileviewer.app.source.FileSource
 import com.fileviewer.app.viewers.archive.ArchiveViewer
 import com.fileviewer.app.viewers.code.CodeViewer
+import com.fileviewer.app.viewers.documents.DocumentViewer
 import com.fileviewer.app.viewers.hex.HexViewer
 import com.fileviewer.app.viewers.image.ImageViewer
 import com.fileviewer.app.viewers.info.InfoViewer
@@ -28,6 +29,7 @@ fun ViewerHost(
         ViewerId.Image -> ImageViewer(source, onCurrentChange, onSwitch)
         ViewerId.Pdf -> PdfViewer(source, onSwitch)
         ViewerId.Media -> MediaViewer(source, kind as FileKind.Media, onSwitch)
+        ViewerId.Preview -> DocumentViewer(source, (kind as FileKind.Document).format, onSwitch)
         ViewerId.Archive -> ArchiveViewer(source, archiveFormat(kind), onOpen, onSwitch)
         ViewerId.Hex -> HexViewer(source)
         ViewerId.Info -> InfoViewer(source, kind)

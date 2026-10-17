@@ -3,7 +3,6 @@ package com.fileviewer.app.viewer
 import android.os.Build
 import com.fileviewer.app.detect.ArchiveFormat
 import com.fileviewer.app.detect.DataFormat
-import com.fileviewer.app.detect.DocumentFormat
 import com.fileviewer.app.detect.FileKind
 import com.fileviewer.app.detect.ImageFormat
 import com.fileviewer.app.detect.sourceLanguage
@@ -11,7 +10,7 @@ import com.fileviewer.app.source.Limits
 
 /** Every viewer the switcher can offer. Labels are what the chips say. */
 enum class ViewerId(val label: String) {
-    Code("Code"), Text("Text"), Image("Image"), Pdf("Pages"), Media("Play"), Archive("Contents"), Hex("Hex"), Info("Info"),
+    Code("Code"), Text("Text"), Image("Image"), Pdf("Pages"), Media("Play"), Preview("Preview"), Archive("Contents"), Hex("Hex"), Info("Info"),
 }
 
 /**
@@ -37,8 +36,8 @@ object ViewerRegistry {
                 else -> listOf(ViewerId.Archive)
             }
             is FileKind.Document -> when {
-                kind.format.zipBased && archiveDepth < Limits.MAX_ARCHIVE_DEPTH -> listOf(ViewerId.Archive)
-                kind.format == DocumentFormat.RTF -> listOf(ViewerId.Text)
+                !kind.format.zipBased -> listOf(ViewerId.Preview)
+                archiveDepth < Limits.MAX_ARCHIVE_DEPTH -> listOf(ViewerId.Preview, ViewerId.Archive)
                 else -> listOf(ViewerId.Info)
             }
             is FileKind.Font -> listOf(ViewerId.Info)
@@ -58,10 +57,6 @@ object ViewerRegistry {
             "AVIF images need Android 12 or later to display."
         kind is FileKind.Image && !imageDecodable(kind.format, sdkInt) ->
             "${kind.format.display} images can't be displayed yet."
-        kind is FileKind.Document && kind.format.zipBased ->
-            "${kind.format.display} preview is planned. For now you can browse the files inside it."
-        kind is FileKind.Document && !kind.format.zipBased && kind.format != DocumentFormat.RTF ->
-            "${kind.format.display} files can't be previewed yet."
         kind is FileKind.Data && kind.format == DataFormat.SQLITE -> "Browsing SQLite tables is planned."
         kind is FileKind.Font -> "Font preview is planned."
         else -> null

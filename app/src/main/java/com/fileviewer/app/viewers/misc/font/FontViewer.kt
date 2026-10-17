@@ -15,7 +15,7 @@ import com.fileviewer.app.ui.components.Message
 import com.fileviewer.app.viewer.ViewerId
 import com.fileviewer.app.viewers.misc.WithRealFile
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
+import kotlinx.coroutines.runInterruptible
 import java.io.File
 
 /** A font the platform accepted, with whatever the file's tables told us. */
@@ -25,7 +25,7 @@ class LoadedFont(val typeface: Typeface, val info: FontInfo?)
 @Composable
 fun FontViewer(source: FileSource, kind: FileKind.Font, onSwitch: (ViewerId) -> Unit) {
     WithRealFile(source) { file ->
-        val loaded by produceState<Result<LoadedFont>?>(null, file) { value = withContext(Dispatchers.IO) { runCatching { load(file) } } }
+        val loaded by produceState<Result<LoadedFont>?>(null, file) { value = runInterruptible(Dispatchers.IO) { runCatching { load(file) } } }
         val result = loaded ?: return@WithRealFile Loading()
         result.onFailure {
             Message(

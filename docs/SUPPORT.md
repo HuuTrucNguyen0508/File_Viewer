@@ -7,7 +7,7 @@ Every file opens. Each format is one of:
 - **Fallback**: no dedicated viewer yet. The file opens in Info and Hex, and can be forced into Text.
 - **Planned**: a phase-2 viewer will cover it. Until then it behaves as noted.
 
-Previews are bounded: a document stops after about 4 million characters of output, any one part over 64 MB or 256 MB unpacked in total is refused, and embedded images over 32 MB are not shown.
+Previews are bounded: a document stops after about 4 million characters of output across a whole document or workbook, any one part over 64 MB or 256 MB unpacked in total is refused, and embedded images over 32 MB are not shown. A single text block that exceeds the intermediate text limit is refused with Text available as a fallback.
 
 Any file can be switched to **Text** (with an encoding picker), **Hex**, and **Info** from the viewer chips, so a misdetected file is never stuck.
 
@@ -79,7 +79,7 @@ Playback uses ExoPlayer and the phone's own decoders. The container is always de
 
 | Format | Support | Notes |
 |---|---|---|
-| SQLite databases (.db, .sqlite, .sqlite3 and others, found by signature) | Full | Tables and views with row counts, the CREATE statements with highlighting, and rows 100 at a time. Opened read-only; databases in WAL mode, or with a `-wal` or `-journal` file beside them, are read from a private copy so the original is never touched, though changes still sitting in a `-journal` are not applied. Encrypted databases (SQLCipher) can't be opened and fall back to Info and Hex. BLOB cells show their size |
+| SQLite databases (.db, .sqlite, .sqlite3 and others, found by signature) | Full | Tables and views with row counts, the CREATE statements with highlighting, and rows 100 at a time. Opened read-only; databases in WAL mode, or with a `-wal` or `-journal` file beside them, are read from a private copy so the original is never touched, though changes still sitting in a `-journal` are not applied. Encrypted databases (SQLCipher) can't be opened and fall back to Info and Hex. BLOB cells show their size without loading their contents; text cells stop at 2,000 characters. A content URI exposes only the selected database file, so uncheckpointed changes in a separate WAL are unavailable unless the database is opened as a local file with its sidecars. The viewer states this when a WAL-mode file has no accessible WAL |
 | Fonts (TTF, OTF, TTC first face) | Full | Name in its own face, sizes from 12 to 56, a field to try your own text (edits nothing on disk), glyph grid with code point and Unicode name |
 | WOFF | Full if the device loads it | Android may refuse WOFF; the viewer then says so and offers Info and Hex |
 | WOFF2 | Fallback | Android can't load it; Info and Hex, with a note |

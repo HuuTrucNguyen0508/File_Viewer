@@ -28,14 +28,14 @@ import com.fileviewer.app.ui.components.Message
 import com.fileviewer.app.ui.theme.Fv
 import com.fileviewer.app.viewer.ViewerId
 import com.fileviewer.app.viewers.data.DataBar
-import com.fileviewer.app.viewers.data.DataLimits
+import com.fileviewer.app.source.Limits
 import com.fileviewer.app.viewers.data.DataNote
 import com.fileviewer.app.viewers.data.LoadedText
 import com.fileviewer.app.viewers.data.WithLoadedText
 import com.fileviewer.app.viewers.data.table.DataTable
 import com.fileviewer.app.viewers.documents.SheetGrid
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
+import kotlinx.coroutines.runInterruptible
 
 /** CSV, TSV and other delimited text as a table. The delimiter is guessed and can be changed. */
 @Composable
@@ -50,7 +50,7 @@ private fun Table(source: FileSource, format: DataFormat, loaded: LoadedText, on
     var chosen by rememberSaveable(source.key) { mutableStateOf<String?>(null) }
     val delimiter = chosen?.single() ?: guessed
     val table by produceState<CsvTable?>(null, loaded, delimiter) {
-        value = withContext(Dispatchers.Default) { CsvParser.parse(loaded.text, delimiter) }
+        value = runInterruptible(Dispatchers.Default) { CsvParser.parse(loaded.text, delimiter) }
     }
     var headerPref by rememberSaveable(source.key) { mutableStateOf<Boolean?>(null) }
 
@@ -66,10 +66,10 @@ private fun Table(source: FileSource, format: DataFormat, loaded: LoadedText, on
 
     Column(Modifier.fillMaxSize()) {
         val notes = buildList {
-            if (loaded.truncated) add("Only the first ${DataLimits.MAX_TEXT_BYTES shr 20} MB of the file was read.")
-            if (t.truncatedRows) add("Only the first %,d rows are shown.".format(DataLimits.MAX_TABLE_ROWS))
-            if (t.truncatedColumns) add("Only the first ${DataLimits.MAX_TABLE_COLS} columns are shown.")
-            if (t.truncatedCells) add("Cells longer than ${DataLimits.MAX_CELL_CHARS} characters are cut.")
+            if (loaded.truncated) add("Only the first ${Limits.MAX_DATA_TEXT_BYTES shr 20} MB of the file was read.")
+            if (t.truncatedRows) add("Only the first %,d rows are shown.".format(Limits.MAX_TABLE_ROWS))
+            if (t.truncatedColumns) add("Only the first ${Limits.MAX_TABLE_COLS} columns are shown.")
+            if (t.truncatedCells) add("Cells longer than ${Limits.MAX_CELL_CHARS} characters are cut.")
         }
         if (notes.isNotEmpty()) DataNote(notes.first(), notes.drop(1))
         TableBar(

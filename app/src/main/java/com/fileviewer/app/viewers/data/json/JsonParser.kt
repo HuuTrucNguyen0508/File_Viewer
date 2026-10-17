@@ -1,6 +1,7 @@
 package com.fileviewer.app.viewers.data.json
 
-import com.fileviewer.app.viewers.data.DataLimits
+import com.fileviewer.app.source.Limits
+import java.io.InterruptedIOException
 
 /** Strict RFC 8259 parser that builds a flat [JsonDoc]. Recursion is bounded by the depth limit. */
 object JsonParser {
@@ -9,9 +10,9 @@ object JsonParser {
     fun parse(
         text: String,
         lines: Boolean = false,
-        maxNodes: Int = DataLimits.MAX_JSON_NODES,
-        maxDepth: Int = DataLimits.MAX_JSON_DEPTH,
-        maxString: Int = DataLimits.MAX_JSON_STRING_CHARS,
+        maxNodes: Int = Limits.MAX_JSON_NODES,
+        maxDepth: Int = Limits.MAX_JSON_DEPTH,
+        maxString: Int = Limits.MAX_JSON_STRING_CHARS,
     ): JsonDoc = Reader(text, maxNodes, maxDepth, maxString).run(lines)
 
     private class NodeLimit : RuntimeException(null, null, false, false)
@@ -20,6 +21,8 @@ object JsonParser {
         val nodes = ArrayList<JsonNode>()
         val open = ArrayList<Int>()
         var pos = 0
+        var lineEnd = Int.MAX_VALUE
+        val end get() = minOf(s.length, lineEnd)
 
         fun run(lines: Boolean): JsonDoc {
             if (s.startsWith("\uFEFF")) pos = 1
@@ -27,14 +30,17 @@ object JsonParser {
             try {
                 if (lines) readLines() else {
                     skipSpace()
-                    if (pos >= s.length) fail("The file is empty")
+                    if (pos >= end) fail("The file is empty")
                     value(null, -1, 0)
                     skipSpace()
                     if (pos < s.length) fail("Unexpected content after the JSON value")
                 }
             } catch (_: NodeLimit) {
                 truncated = true
-                for (i in open) nodes[i].end = nodes.lastIndex
+                for (i in open) {
+                    nodes[i].end = nodes.lastIndex
+                    nodes[i].childCount = nodes.count { it.parent == i }
+                }
             }
             return JsonDoc(nodes, truncated, lines)
         }
@@ -44,8 +50,13 @@ object JsonParser {
             open += root
             skipSpace()
             while (pos < s.length) {
+                lineEnd = s.indexOf('\n', pos).let { if (it < 0) s.length else it }
                 value(nodes[root].childCount.toString(), root, 1)
                 nodes[root].childCount++
+                skipSpace()
+                if (pos < lineEnd) fail("Expected one JSON value per line")
+                pos = minOf(s.length, lineEnd + 1)
+                lineEnd = Int.MAX_VALUE
                 skipSpace()
             }
             nodes[root].end = nodes.lastIndex
@@ -59,8 +70,9 @@ object JsonParser {
         }
 
         fun value(label: String?, parent: Int, depth: Int) {
+            checkInterrupted()
             if (depth > maxDepth) fail("Nested more than $maxDepth levels deep")
-            if (pos >= s.length) fail("Unexpected end of the file")
+            if (pos >= end) fail(if (lineEnd < s.length) "Expected a complete JSON value on this line" else "Unexpected end of the file")
             when (val c = s[pos]) {
                 '{' -> container(JsonType.Object, label, parent, depth)
                 '[' -> container(JsonType.Array, label, parent, depth)
@@ -83,19 +95,19 @@ object JsonParser {
             open += index
             pos++
             skipSpace()
-            if (pos < s.length && s[pos] == closer) {
+            if (pos < end && s[pos] == closer) {
                 pos++
             } else {
                 var count = 0
                 while (true) {
                     skipSpace()
-                    if (pos >= s.length) fail("Unexpected end of the file")
+                    if (pos >= end) fail(if (lineEnd < s.length) "Expected a complete JSON value on this line" else "Unexpected end of the file")
                     val childLabel: String
                     if (type == JsonType.Object) {
                         if (s[pos] != '"') fail("Expected a quoted key but found ${describe(s[pos])}")
                         childLabel = string().first
                         skipSpace()
-                        if (pos >= s.length) fail("Unexpected end of the file")
+                        if (pos >= end) fail(if (lineEnd < s.length) "Expected a complete JSON value on this line" else "Unexpected end of the file")
                         if (s[pos] != ':') fail("Expected ':' after the key but found ${describe(s[pos])}")
                         pos++
                         skipSpace()
@@ -104,7 +116,7 @@ object JsonParser {
                     count++
                     nodes[index].childCount = count
                     skipSpace()
-                    if (pos >= s.length) fail("Unexpected end of the file")
+                    if (pos >= end) fail(if (lineEnd < s.length) "Expected a complete JSON value on this line" else "Unexpected end of the file")
                     val c = s[pos]
                     if (c == ',') { pos++; continue }
                     if (c == closer) { pos++; break }
@@ -126,19 +138,19 @@ object JsonParser {
         fun number(label: String?, parent: Int, depth: Int) {
             val start = pos
             if (s[pos] == '-') pos++
-            if (pos >= s.length) fail("Unexpected end of the file")
+            if (pos >= end) fail(if (lineEnd < s.length) "Expected a complete JSON value on this line" else "Unexpected end of the file")
             when {
                 s[pos] == '0' -> pos++
-                s[pos] in '1'..'9' -> while (pos < s.length && s[pos] in '0'..'9') pos++
+                s[pos] in '1'..'9' -> while (pos < end && s[pos] in '0'..'9') pos++
                 else -> fail("Expected a digit but found ${describe(s[pos])}")
             }
-            if (pos < s.length && s[pos] == '.') {
+            if (pos < end && s[pos] == '.') {
                 pos++
                 digits("after the decimal point")
             }
-            if (pos < s.length && (s[pos] == 'e' || s[pos] == 'E')) {
+            if (pos < end && (s[pos] == 'e' || s[pos] == 'E')) {
                 pos++
-                if (pos < s.length && (s[pos] == '+' || s[pos] == '-')) pos++
+                if (pos < end && (s[pos] == '+' || s[pos] == '-')) pos++
                 digits("in the exponent")
             }
             add(JsonType.Number, label, parent, depth).let { nodes[it].text = s.substring(start, pos) }
@@ -146,7 +158,7 @@ object JsonParser {
 
         fun digits(where: String) {
             if (pos >= s.length || s[pos] !in '0'..'9') fail("Expected a digit $where")
-            while (pos < s.length && s[pos] in '0'..'9') pos++
+            while (pos < end && s[pos] in '0'..'9') pos++
         }
 
         /** Reads a string at [pos] (on the opening quote). Returns the text and whether it was cut. */
@@ -155,14 +167,15 @@ object JsonParser {
             val sb = StringBuilder()
             var clipped = false
             while (true) {
-                if (pos >= s.length) fail("The string is never closed")
+                checkInterrupted()
+                if (pos >= end) fail("The string is never closed")
                 val c = s[pos]
                 when {
                     c == '"' -> { pos++; return sb.toString() to clipped }
                     c < ' ' -> fail("A line break or control character inside a string must be escaped")
                     c == '\\' -> {
                         pos++
-                        if (pos >= s.length) fail("The string is never closed")
+                        if (pos >= end) fail("The string is never closed")
                         val e = s[pos]
                         val decoded: Char = when (e) {
                             '"', '\\', '/' -> e
@@ -189,10 +202,15 @@ object JsonParser {
         }
 
         fun skipSpace() {
-            while (pos < s.length) {
+            while (pos < end) {
+                checkInterrupted()
                 val c = s[pos]
                 if (c == ' ' || c == '\n' || c == '\r' || c == '\t') pos++ else break
             }
+        }
+
+        private fun checkInterrupted() {
+            if (Thread.currentThread().isInterrupted) throw InterruptedIOException("Parse cancelled")
         }
 
         fun describe(c: Char): String = when {

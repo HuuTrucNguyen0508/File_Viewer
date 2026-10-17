@@ -10,6 +10,52 @@ object Limits {
     /** Bytes sampled for detection. Must cover tar's `ustar` at 257 and three MPEG-TS sync bytes. */
     const val HEADER_BYTES = 4096
 
+    /** Largest `name` table read from a font. */
+    const val MAX_NAME_TABLE_BYTES = 1 shl 20
+    const val MAX_FONT_TABLES = 256
+    const val MAX_FONT_FACES = 1024
+
+    /** Largest `cmap` table read from a font. */
+    const val MAX_CMAP_TABLE_BYTES = 8 shl 20
+
+    /** Code point ranges kept from a cmap. */
+    const val MAX_COVERAGE_RANGES = 100_000
+
+    /** Glyph cells shown for one block of the glyph grid. */
+    const val MAX_GLYPHS_PER_SECTION = 512
+
+    /** Glyph cells shown outside the common blocks. */
+    const val MAX_OTHER_GLYPHS = 1024
+
+    /** Largest certificate or key file parsed. */
+    const val MAX_CERT_FILE_BYTES = 4L shl 20
+
+    /** Certificates and keys listed from one file. */
+    const val MAX_CERT_ITEMS = 200
+
+    /** Permissions listed for one APK. */
+    const val MAX_PERMISSIONS = 500
+
+    /** Bytes read from a Markdown, HTML, CSV or JSON file; anything past this is cut with a note. */
+    const val MAX_DATA_TEXT_BYTES = 32L shl 20
+
+    /** CSV and SQLite tables: rows kept in memory, columns shown, characters kept per cell. */
+    const val MAX_TABLE_ROWS = 50_000
+    const val MAX_TABLE_COLS = 200
+    const val MAX_CELL_CHARS = 2_000
+
+    /** JSON: nesting accepted, nodes kept in the tree, characters kept per string value. */
+    const val MAX_JSON_DEPTH = 200
+    const val MAX_JSON_NODES = 200_000
+    const val MAX_JSON_STRING_CHARS = 20_000
+
+    /** SQLite: rows per page and tables or views listed. */
+    const val SQL_PAGE_ROWS = 100
+    const val MAX_DB_OBJECTS = 5_000
+
+    /** A stylesheet, image or font fetched from the folder next to an HTML or Markdown file. */
+    const val MAX_RESOURCE_BYTES = 16L shl 20
+
     /** Text read into the editor, counted by bytes actually read. Larger files open in paged text mode. */
     const val MAX_EDITOR_TEXT_BYTES = 20L shl 20
 
@@ -47,7 +93,7 @@ object Limits {
     /** Decompressed bytes read across all parts of one document preview (zip-bomb bound). */
     const val MAX_DOC_TOTAL_BYTES = 256L shl 20
 
-    /** Characters of HTML a document preview produces per page; the rest is cut with a note. */
+    /** Characters of HTML a document preview produces across pages; the rest is cut with a note. */
     const val MAX_DOC_HTML_CHARS = 4_000_000
 
     /** One embedded image served to a document preview. */

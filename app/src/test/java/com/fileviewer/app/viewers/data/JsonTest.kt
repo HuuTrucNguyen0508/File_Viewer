@@ -133,4 +133,22 @@ class JsonTest {
         assertEquals(2, e.line)
         assertEquals(6, e.column)
     }
+    @Test fun jsonLinesRejectsMultipleValuesOnOneLine() {
+        val e = error("{} {}", lines = true)
+        assertEquals(1, e.line)
+        assertEquals(4, e.column)
+    }
+
+    @Test fun jsonLinesRejectsMultilineValues() {
+        val e = error("[1,\n2]", lines = true)
+        assertEquals(1, e.line)
+    }
+
+    @Test fun truncatedNestedContainerRetainsItsParentChild() {
+        val doc = JsonParser.parse("{\"data\":[1,2,3,4]}", maxNodes = 4)
+        assertEquals(1, doc.nodes[0].childCount)
+        assertEquals(listOf(0), doc.visible(emptySet()).toList())
+        assertEquals(listOf(0, 1), doc.visible(setOf(0)).toList())
+    }
+
 }

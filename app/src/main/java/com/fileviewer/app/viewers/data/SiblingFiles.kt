@@ -1,5 +1,7 @@
 package com.fileviewer.app.viewers.data
 
+import com.fileviewer.app.source.Limits
+
 import android.webkit.WebResourceResponse
 import com.fileviewer.app.source.ArchiveEntry
 import com.fileviewer.app.source.ArchiveEntrySource
@@ -52,7 +54,7 @@ object SiblingFiles {
                 is LocalFileSource -> openLocal(page.file, rel)
                 is ArchiveEntrySource -> openInArchive(page, rel)
                 else -> null
-            }?.let { LimitedInputStream(it, DataLimits.MAX_RESOURCE_BYTES, rel) }
+            }?.let { LimitedInputStream(it, Limits.MAX_RESOURCE_BYTES, rel) }
         } catch (_: Exception) {
             null
         }

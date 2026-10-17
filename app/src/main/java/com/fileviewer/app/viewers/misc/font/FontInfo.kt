@@ -1,6 +1,6 @@
 package com.fileviewer.app.viewers.misc.font
 
-import com.fileviewer.app.viewers.misc.MiscLimits
+import com.fileviewer.app.source.Limits
 
 /** What the specimen header and glyph grid need from a font file. */
 data class FontInfo(
@@ -17,9 +17,9 @@ object FontInfoReader {
     /** Null when [range] isn't an sfnt font. Reads the table directory, `name` and `cmap` only. */
     fun read(range: ByteRange, face: Int = 0): FontInfo? {
         val sfnt = Sfnt.open(range, face) ?: return null
-        val names = sfnt.table("name", MiscLimits.MAX_NAME_TABLE_BYTES)?.let(NameTable::parse)
+        val names = sfnt.table("name", Limits.MAX_NAME_TABLE_BYTES)?.let(NameTable::parse)
             ?: FontNames(null, null, null, null, null, null, null, null)
-        val coverage = sfnt.table("cmap", MiscLimits.MAX_CMAP_TABLE_BYTES)?.let(CmapTable::parse)
+        val coverage = sfnt.table("cmap", Limits.MAX_CMAP_TABLE_BYTES)?.let(CmapTable::parse)
         return FontInfo(names, coverage, sfnt.faceCount, sfnt.flavor)
     }
 }
@@ -40,15 +40,15 @@ object GlyphSets {
         "Mathematical operators" to (0x2200..0x22FF),
     )
 
-    /** Blocks the font covers, then up to [MiscLimits.MAX_OTHER_GLYPHS] more characters it reports. */
+    /** Blocks the font covers, then up to [Limits.MAX_OTHER_GLYPHS] more characters it reports. */
     fun sections(coverage: Coverage?): List<GlyphSection> {
         if (coverage == null) {
             return BLOCKS.take(2).map { (title, r) -> GlyphSection(title, r.toList()) }
         }
         val named = BLOCKS.mapNotNull { (title, r) ->
-            coverage.within(r, MiscLimits.MAX_GLYPHS_PER_SECTION).takeIf { it.isNotEmpty() }?.let { GlyphSection(title, it) }
+            coverage.within(r, Limits.MAX_GLYPHS_PER_SECTION).takeIf { it.isNotEmpty() }?.let { GlyphSection(title, it) }
         }
-        val other = coverage.outside(BLOCKS.map { it.second } + listOf(0..0x20, 0x7F..0xA0), MiscLimits.MAX_OTHER_GLYPHS)
+        val other = coverage.outside(BLOCKS.map { it.second } + listOf(0..0x20, 0x7F..0xA0), Limits.MAX_OTHER_GLYPHS)
         return if (other.isEmpty()) named else named + GlyphSection("More characters in this font", other)
     }
 }

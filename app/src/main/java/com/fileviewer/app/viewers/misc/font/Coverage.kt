@@ -1,6 +1,7 @@
 package com.fileviewer.app.viewers.misc.font
 
-import com.fileviewer.app.viewers.misc.MiscLimits
+import com.fileviewer.app.source.Limits
+import java.io.InterruptedIOException
 
 /** The code points a font has glyphs for, as sorted, non-adjacent ranges. */
 class Coverage(val ranges: List<IntRange>) {
@@ -79,10 +80,14 @@ object CmapTable {
         val deltas = at + 16 + segments * 4
         val offsets = at + 16 + segments * 6
         val out = ArrayList<IntRange>()
+        var previousEnd = -1
         for (i in 0 until segments) {
+            if (Thread.currentThread().isInterrupted) throw InterruptedIOException("Font parse cancelled")
             val start = t.u16(starts + i * 2)
             val end = t.u16(ends + i * 2)
-            if (end < start || start == 0xFFFF) continue
+            if (end < start || start <= previousEnd) return null
+            previousEnd = end
+            if (start == 0xFFFF) continue
             val rangeOffset = t.u16(offsets + i * 2)
             val delta = t.u16(deltas + i * 2)
             var runStart = -1
@@ -95,7 +100,7 @@ object CmapTable {
                 if (glyph == 0 && runStart >= 0) { out.add(runStart until cp); runStart = -1 }
             }
             if (runStart >= 0) out.add(runStart..end)
-            if (out.size > MiscLimits.MAX_COVERAGE_RANGES) break
+            if (out.size > Limits.MAX_COVERAGE_RANGES) break
         }
         return out
     }
@@ -104,7 +109,7 @@ object CmapTable {
         val groups = t.u32(at + 12)
         if (groups < 0) return null
         val available = (t.size - at - 16) / 12
-        val n = minOf(groups, available.toLong(), MiscLimits.MAX_COVERAGE_RANGES.toLong()).toInt()
+        val n = minOf(groups, available.toLong(), Limits.MAX_COVERAGE_RANGES.toLong()).toInt()
         val out = ArrayList<IntRange>()
         for (i in 0 until n) {
             val start = t.u32(at + 16 + i * 12)

@@ -1,6 +1,7 @@
 package com.fileviewer.app.viewers.misc.cert
 
 import java.util.Base64
+import java.io.InterruptedIOException
 
 /** One `-----BEGIN label-----` block. Private-key blocks never carry their body. */
 sealed interface PemBlock {
@@ -15,22 +16,35 @@ sealed interface PemBlock {
 }
 
 object PemBlocks {
-    private val BLOCK = Regex("-----BEGIN ([A-Z0-9 ]+)-----(.*?)-----END \\1-----", RegexOption.DOT_MATCHES_ALL)
+    private val MARKER = Regex("-----(BEGIN|END) ([A-Z0-9 ]+)-----")
 
     fun isPem(text: String) = "-----BEGIN " in text
 
     fun isSecret(label: String) = "PRIVATE KEY" in label
 
-    /** Blocks in file order, at most [limit]. Text between blocks is ignored. */
-    fun parse(text: String, limit: Int): List<PemBlock> =
-        BLOCK.findAll(text).take(limit).map { m ->
-            val label = m.groupValues[1]
-            val body = m.groupValues[2]
-            when {
-                isSecret(label) -> PemBlock.Secret(label, encrypted = label.startsWith("ENCRYPTED") || "ENCRYPTED" in body.take(200))
-                else -> decode(label, body)
+    fun parse(text: String, limit: Int): List<PemBlock> {
+        val blocks = ArrayList<PemBlock>()
+        var label: String? = null
+        var bodyStart = 0
+        for (marker in MARKER.findAll(text)) {
+            if (Thread.currentThread().isInterrupted) throw InterruptedIOException("Parse cancelled")
+            val name = marker.groupValues[2]
+            if (marker.groupValues[1] == "BEGIN") {
+                label = name
+                bodyStart = marker.range.last + 1
+            } else if (label == name) {
+                if (isSecret(name)) {
+                    val header = text.substring(bodyStart, minOf(marker.range.first, bodyStart + 200))
+                    blocks += PemBlock.Secret(name, name.startsWith("ENCRYPTED") || "ENCRYPTED" in header)
+                } else {
+                    blocks += decode(name, text.substring(bodyStart, marker.range.first))
+                }
+                label = null
+                if (blocks.size >= limit) break
             }
-        }.toList()
+        }
+        return blocks
+    }
 
     private fun decode(label: String, body: String): PemBlock {
         val base64 = body.lineSequence().filter { ':' !in it }.joinToString("").filterNot { it.isWhitespace() }

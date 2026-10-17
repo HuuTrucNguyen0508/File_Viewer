@@ -1,17 +1,19 @@
 package com.fileviewer.app.viewers.data
 
+import com.fileviewer.app.source.Limits
+
 import com.fileviewer.app.source.FileSource
 import com.fileviewer.app.viewers.code.TextLoader
 import java.io.InputStream
 import java.io.InterruptedIOException
 
-/** Decoded text of a data file; [truncated] when more than [DataLimits.MAX_TEXT_BYTES] bytes were present. */
+/** Decoded text of a data file; [truncated] when more than [Limits.MAX_DATA_TEXT_BYTES] bytes were present. */
 data class LoadedText(val text: String, val truncated: Boolean)
 
 object DataText {
 
     /** Blocking; call off the main thread. */
-    fun load(source: FileSource, maxBytes: Long = DataLimits.MAX_TEXT_BYTES): LoadedText =
+    fun load(source: FileSource, maxBytes: Long = Limits.MAX_DATA_TEXT_BYTES): LoadedText =
         source.openStream().use { decode(it, maxBytes) }
 
     fun decode(input: InputStream, maxBytes: Long): LoadedText {

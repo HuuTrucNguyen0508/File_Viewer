@@ -22,11 +22,11 @@ import com.fileviewer.app.ui.theme.Fv
 import com.fileviewer.app.viewer.ViewerId
 import com.fileviewer.app.viewers.code.CodeViewer
 import com.fileviewer.app.viewers.data.DataBar
-import com.fileviewer.app.viewers.data.DataLimits
+import com.fileviewer.app.source.Limits
 import com.fileviewer.app.viewers.data.DataNote
 import com.fileviewer.app.viewers.data.WithLoadedText
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
+import kotlinx.coroutines.runInterruptible
 
 private sealed interface Parsed {
     data class Tree(val doc: JsonDoc) : Parsed
@@ -43,9 +43,9 @@ fun JsonViewer(source: FileSource, kind: FileKind.Data, onSwitch: (ViewerId) -> 
     WithLoadedText(source, onSwitch) { loaded ->
         val lines = kind.format == DataFormat.JSONL
         val parsed by produceState<Parsed?>(null, loaded) {
-            value = withContext(Dispatchers.Default) {
+            value = runInterruptible(Dispatchers.Default) {
                 try {
-                    Parsed.Tree(JsonParser.parse(loaded.text, lines))
+                    if (loaded.truncated) Parsed.TooLarge else Parsed.Tree(JsonParser.parse(loaded.text, lines))
                 } catch (e: JsonSyntaxException) {
                     if (loaded.truncated) Parsed.TooLarge else Parsed.Invalid(e)
                 }
@@ -64,7 +64,7 @@ fun JsonViewer(source: FileSource, kind: FileKind.Data, onSwitch: (ViewerId) -> 
             }
             Parsed.TooLarge -> Column(Modifier.fillMaxSize()) {
                 DataNote(
-                    "This file is larger than ${DataLimits.MAX_TEXT_BYTES shr 20} MB, too large to draw as a tree.",
+                    "This file is larger than ${Limits.MAX_DATA_TEXT_BYTES shr 20} MB, too large to draw as a tree.",
                     listOf("The source is shown below."),
                     tone = Fv.palette.danger,
                 )
@@ -81,8 +81,8 @@ private fun TreeScreen(doc: JsonDoc, bytesCut: Boolean) {
     val rows = remember(doc, expanded) { doc.visible(expanded) }
     Column(Modifier.fillMaxSize()) {
         val notes = buildList {
-            if (doc.truncated) add("Only the first %,d values are shown.".format(DataLimits.MAX_JSON_NODES))
-            if (bytesCut) add("Only the first ${DataLimits.MAX_TEXT_BYTES shr 20} MB of the file was read.")
+            if (doc.truncated) add("Only the first %,d values are shown.".format(Limits.MAX_JSON_NODES))
+            if (bytesCut) add("Only the first ${Limits.MAX_DATA_TEXT_BYTES shr 20} MB of the file was read.")
         }
         if (notes.isNotEmpty()) DataNote(notes.first(), notes.drop(1))
         DataBar {

@@ -29,12 +29,16 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.fileviewer.app.detect.Family
 import com.fileviewer.app.source.FileSource
+import com.fileviewer.app.source.LocalFileSource
+import com.fileviewer.app.source.LimitExceededException
+import com.fileviewer.app.source.acquireResource
 import com.fileviewer.app.ui.components.Loading
 import com.fileviewer.app.ui.components.Message
 import com.fileviewer.app.ui.theme.Fv
 import com.fileviewer.app.ui.theme.MonoBody
 import com.fileviewer.app.viewer.ViewerId
 import com.fileviewer.app.viewers.data.DataBar
+import com.fileviewer.app.viewers.data.DataNote
 import com.fileviewer.app.viewers.misc.Badge
 import com.fileviewer.app.viewers.misc.WithRealFile
 import kotlinx.coroutines.CancellationException
@@ -52,22 +56,22 @@ private sealed interface Opened {
 /** Browses a SQLite database read-only: tables and views with row counts, schema, rows 100 at a time. */
 @Composable
 fun SqliteViewer(source: FileSource, onSwitch: (ViewerId) -> Unit) {
-    WithRealFile(source) { file -> Browser(file, onSwitch) }
+    WithRealFile(source) { file -> Browser(file, source !is LocalFileSource, onSwitch) }
 }
 
 @Composable
-private fun Browser(file: File, onSwitch: (ViewerId) -> Unit) {
+private fun Browser(file: File, warnMissingWal: Boolean, onSwitch: (ViewerId) -> Unit) {
     val context = LocalContext.current
     val opened by produceState<Opened>(Opened.Opening, file) {
         var session: SqliteSession? = null
         try {
-            session = runInterruptible(Dispatchers.IO) { SqliteSession.open(context, file) }
+            session = acquireResource { runInterruptible { SqliteSession.open(context, file) } }
             value = Opened.Ready(session, runInterruptible(Dispatchers.IO) { session.objects() })
             awaitCancellation()
         } catch (e: CancellationException) {
             throw e
         } catch (e: Exception) {
-            value = Opened.Failed(e.message ?: e.javaClass.simpleName)
+            value = Opened.Failed((e.message ?: e.javaClass.simpleName) + if (e is LimitExceededException) "." else ". It may be encrypted or damaged.")
         } finally {
             session?.close()
         }
@@ -76,10 +80,13 @@ private fun Browser(file: File, onSwitch: (ViewerId) -> Unit) {
         Opened.Opening -> Loading()
         is Opened.Failed -> Message(
             "This database couldn't be opened",
-            detail = o.message + " It may be encrypted or damaged.",
+            detail = o.message,
             actions = listOf("Show hex" to { onSwitch(ViewerId.Hex) }, "Show info" to { onSwitch(ViewerId.Info) }),
         )
-        is Opened.Ready -> Objects(o.session, o.objects)
+        is Opened.Ready -> Column(Modifier.fillMaxSize()) {
+            if (warnMissingWal && o.session.missingWal) DataNote("Only the main database is available. Changes still in its WAL file aren't included.")
+            Column(Modifier.weight(1f)) { Objects(o.session, o.objects) }
+        }
     }
 }
 

@@ -1,6 +1,6 @@
 package com.fileviewer.app.viewers.misc.cert
 
-import com.fileviewer.app.viewers.misc.MiscLimits
+import com.fileviewer.app.source.Limits
 import java.io.ByteArrayInputStream
 import java.security.KeyFactory
 import java.security.PublicKey
@@ -27,10 +27,12 @@ object CertificateParser {
 
     /** Parses PEM text (certificates, public keys, PKCS#7, private-key markers) or one DER certificate/key. */
     fun parse(bytes: ByteArray): CertificateFile {
-        val limit = MiscLimits.MAX_CERT_ITEMS
+        val limit = Limits.MAX_CERT_ITEMS
         val text = String(bytes, Charsets.ISO_8859_1)
         val items = if (PemBlocks.isPem(text)) {
-            PemBlocks.parse(text, limit + 1).map(::pemItem).flatten()
+            PemBlocks.parse(text, limit + 1).flatMap(::pemItem).ifEmpty {
+                listOf(KeyItem.Unreadable("PEM data", "No complete certificate or key blocks were found."))
+            }
         } else {
             der(bytes)
         }

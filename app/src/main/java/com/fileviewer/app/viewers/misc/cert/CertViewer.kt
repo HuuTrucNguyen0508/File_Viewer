@@ -29,7 +29,7 @@ import com.fileviewer.app.ui.theme.Fv
 import com.fileviewer.app.viewer.ViewerId
 import com.fileviewer.app.viewers.misc.Badge
 import com.fileviewer.app.viewers.misc.MiscFact
-import com.fileviewer.app.viewers.misc.MiscLimits
+import com.fileviewer.app.source.Limits
 import com.fileviewer.app.viewers.misc.MiscSection
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runInterruptible
@@ -41,7 +41,7 @@ fun CertViewer(source: FileSource, onSwitch: (ViewerId) -> Unit) {
     val parsed by produceState<Result<CertificateFile>?>(null, source) {
         value = runInterruptible(Dispatchers.IO) {
             runCatching {
-                val bytes = LimitedInputStream(source.openStream(), MiscLimits.MAX_CERT_FILE_BYTES, source.name).use { it.readBytes() }
+                val bytes = LimitedInputStream(source.openStream(), Limits.MAX_CERT_FILE_BYTES, source.name).use { it.readBytes() }
                 CertificateParser.parse(bytes)
             }
         }

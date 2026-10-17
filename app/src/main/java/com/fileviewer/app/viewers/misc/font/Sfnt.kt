@@ -1,6 +1,7 @@
 package com.fileviewer.app.viewers.misc.font
 
 import com.fileviewer.app.source.SeekableSource
+import com.fileviewer.app.source.Limits
 import com.fileviewer.app.source.readFully
 
 /** Positional byte access, so parsers read only the tables they need from a file of any size. */
@@ -48,8 +49,6 @@ class Sfnt private constructor(
 
     companion object {
         private val FLAVORS = setOf("\u0000\u0001\u0000\u0000", "OTTO", "true", "typ1")
-        private const val MAX_TABLES = 256
-        private const val MAX_FACES = 1024
 
         /** Null when the data isn't an sfnt font, or [face] is out of range. */
         fun open(range: ByteRange, face: Int = 0): Sfnt? {
@@ -57,7 +56,7 @@ class Sfnt private constructor(
             var directory = 0L
             var faces = 1
             if (head.tag(0) == "ttcf") {
-                faces = head.u32(8).coerceIn(0L, MAX_FACES.toLong()).toInt()
+                faces = head.u32(8).coerceIn(0L, Limits.MAX_FONT_FACES.toLong()).toInt()
                 if (face !in 0 until faces) return null
                 val offsets = range.read(12L + 4L * face, 4)
                 directory = offsets.u32(0).takeIf { it >= 0 } ?: return null
@@ -66,7 +65,7 @@ class Sfnt private constructor(
             val flavor = header.tag(0)
             if (flavor !in FLAVORS) return null
             val count = header.u16(4)
-            if (count !in 1..MAX_TABLES) return null
+            if (count !in 1..Limits.MAX_FONT_TABLES) return null
             val records = range.read(directory + 12, count * 16)
             if (records.size < count * 16) return null
             val tables = HashMap<String, Pair<Long, Long>>()

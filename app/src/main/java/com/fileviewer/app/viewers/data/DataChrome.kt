@@ -1,5 +1,7 @@
 package com.fileviewer.app.viewers.data
 
+import com.fileviewer.app.source.Limits
+
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
@@ -70,7 +72,7 @@ sealed interface TextState {
     data class Failed(val message: String) : TextState
 }
 
-/** Loads the file's text off the main thread; the result is cut at [DataLimits.MAX_TEXT_BYTES]. */
+/** Loads the file's text off the main thread; the result is cut at [Limits.MAX_DATA_TEXT_BYTES]. */
 @Composable
 fun rememberLoadedText(source: FileSource): TextState {
     val state by produceState<TextState>(TextState.Loading, source) {
@@ -101,7 +103,7 @@ fun WithLoadedText(source: FileSource, onSwitch: (ViewerId) -> Unit, content: @C
 
 /** The note that goes with a cut-off read. */
 fun truncationNote(truncated: Boolean): List<String> =
-    if (truncated) listOf("Only the first ${DataLimits.MAX_TEXT_BYTES shr 20} MB is shown.") else emptyList()
+    if (truncated) listOf("Only the first ${Limits.MAX_DATA_TEXT_BYTES shr 20} MB is shown.") else emptyList()
 
 object DataClipboard {
     /** Copies [text]; Android 13 and later confirm on their own, older versions get a toast. */

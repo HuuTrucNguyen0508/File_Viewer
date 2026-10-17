@@ -6,8 +6,8 @@ import android.content.pm.PackageInfo
 import android.content.pm.PackageManager
 import android.content.pm.PermissionInfo
 import android.graphics.Bitmap
-import android.graphics.Canvas
-import com.fileviewer.app.viewers.misc.MiscLimits
+import androidx.core.graphics.drawable.toBitmap
+import com.fileviewer.app.source.Limits
 import com.fileviewer.app.viewers.misc.cert.CertInfo
 import com.fileviewer.app.viewers.misc.cert.digest
 import java.io.File
@@ -62,7 +62,7 @@ object ApkReader {
 
     /** Dangerous-level permissions first, then the rest in manifest order. */
     private fun permissions(pm: PackageManager, info: PackageInfo): List<ApkPermission> {
-        val all = info.requestedPermissions.orEmpty().take(MiscLimits.MAX_PERMISSIONS).map { name ->
+        val all = info.requestedPermissions.orEmpty().take(Limits.MAX_PERMISSIONS).map { name ->
             val level = runCatching { pm.getPermissionInfo(name, 0).protection }.getOrNull()
             ApkPermission(name, sensitive = level == PermissionInfo.PROTECTION_DANGEROUS)
         }
@@ -83,9 +83,6 @@ object ApkReader {
 
     private fun render(icon: android.graphics.drawable.Drawable): Bitmap {
         val size = 192
-        val bitmap = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888)
-        icon.setBounds(0, 0, size, size)
-        icon.draw(Canvas(bitmap))
-        return bitmap
+        return icon.toBitmap(size, size, Bitmap.Config.ARGB_8888)
     }
 }

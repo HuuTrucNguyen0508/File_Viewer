@@ -1,6 +1,7 @@
 package com.fileviewer.app.viewers.data.csv
 
-import com.fileviewer.app.viewers.data.DataLimits
+import com.fileviewer.app.source.Limits
+import java.io.InterruptedIOException
 
 /** Parsed delimited text. Rows can be ragged; [columns] is the widest row, capped at the column limit. */
 class CsvTable(
@@ -22,9 +23,9 @@ object CsvParser {
     fun parse(
         text: String,
         delimiter: Char,
-        maxRows: Int = DataLimits.MAX_TABLE_ROWS,
-        maxCols: Int = DataLimits.MAX_TABLE_COLS,
-        maxCell: Int = DataLimits.MAX_CELL_CHARS,
+        maxRows: Int = Limits.MAX_TABLE_ROWS,
+        maxCols: Int = Limits.MAX_TABLE_COLS,
+        maxCell: Int = Limits.MAX_CELL_CHARS,
     ): CsvTable {
         val rows = ArrayList<List<String>>()
         var row = ArrayList<String>()
@@ -64,6 +65,7 @@ object CsvParser {
 
         var i = 0
         loop@ while (i < text.length) {
+            if (i and 0xFFF == 0 && Thread.currentThread().isInterrupted) throw InterruptedIOException("Parse cancelled")
             val c = text[i]
             if (inQuotes) {
                 if (c == '"') {

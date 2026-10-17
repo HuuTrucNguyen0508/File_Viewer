@@ -14,15 +14,17 @@ class SqliteTextTest {
         assertEquals("\"two words\"", SqlText.quote("two words"))
     }
 
-    @Test fun pageQueryAsksForOneExtraRowAndOffsetsByPage() {
-        assertEquals("SELECT * FROM \"t\" LIMIT 101 OFFSET 0", SqlText.pageQuery("t", 0))
-        assertEquals("SELECT * FROM \"t\" LIMIT 101 OFFSET 300", SqlText.pageQuery("t", 3))
-        assertEquals("SELECT * FROM \"t\" LIMIT 11 OFFSET 20", SqlText.pageQuery("t", 2, pageRows = 10))
-        assertEquals("SELECT * FROM \"t\" LIMIT 101 OFFSET 2147483700", SqlText.pageQuery("t", 21474837))
+    @Test fun pageQueryBoundsCellsBeforeTheyReachTheCursor() {
+        val sql = SqlText.pageQuery("t", 3, listOf("odd\"name"))
+        assertTrue(sql.contains("length(\"odd\"\"name\")"))
+        assertTrue(sql.contains("substr(CAST(\"odd\"\"name\" AS TEXT), 1, 2001)"))
+        assertTrue(sql.endsWith("LIMIT 101 OFFSET 300"))
+        assertTrue(SqlText.pageQuery("t", 2, listOf("id"), pageRows = 10).endsWith("LIMIT 11 OFFSET 20"))
+        assertTrue(SqlText.pageQuery("t", 21474837, listOf("id")).endsWith("OFFSET 2147483700"))
     }
 
     @Test fun onlyReadStatementsAreBuilt() {
-        val sql = listOf(SqlText.pageQuery("t", 1), SqlText.countQuery("t"), SqlText.OBJECTS_QUERY, SqlText.SCHEMA_QUERY)
+        val sql = listOf(SqlText.pageQuery("t", 1, listOf("id")), SqlText.countQuery("t"), SqlText.OBJECTS_QUERY, SqlText.SCHEMA_QUERY)
         sql.forEach { assertTrue(it, it.trimStart().startsWith("SELECT")) }
         assertEquals("SELECT COUNT(*) FROM \"a\"\"b\"", SqlText.countQuery("a\"b"))
     }

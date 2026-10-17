@@ -1,7 +1,11 @@
 package com.fileviewer.app.viewers.data.sqlite
 
+import com.fileviewer.app.source.Limits
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.IntrinsicSize
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -82,7 +86,7 @@ private fun ObjectBar(obj: DbObject, showSchema: Boolean, onBack: () -> Unit, on
 @Composable
 private fun ModeTab(label: String, selected: Boolean, onClick: () -> Unit) {
     val p = Fv.palette
-    Column(Modifier.selectable(selected = selected, role = Role.Tab, onClick = onClick).heightIn(min = 48.dp)) {
+    Column(Modifier.width(IntrinsicSize.Min).selectable(selected = selected, role = Role.Tab, onClick = onClick).heightIn(min = 48.dp)) {
         Box(Modifier.fillMaxWidth().height(2.dp).background(if (selected) p.family(Family.Data) else p.paper))
         Box(Modifier.padding(horizontal = 14.dp).heightIn(min = 46.dp), contentAlignment = Alignment.Center) {
             Text(label, style = MaterialTheme.typography.labelLarge, color = if (selected) p.ink else p.muted)
@@ -109,7 +113,7 @@ private fun Rows(session: SqliteSession, name: String, count: Long?, pageIndex: 
             if (s.page.rows.isEmpty() && pageIndex == 0) return Message("This table has no rows")
             Column(Modifier.fillMaxSize()) {
                 DataTable(
-                    s.page.columns, s.page.rows, firstNumber = pageIndex * com.fileviewer.app.viewers.data.DataLimits.SQL_PAGE_ROWS + 1,
+                    s.page.columns, s.page.rows, firstNumber = pageIndex * Limits.SQL_PAGE_ROWS + 1,
                     modifier = Modifier.fillMaxWidth().weight(1f),
                 )
                 Pager(pageIndex, s.page, count?.takeIf { it >= 0 }, onPage)

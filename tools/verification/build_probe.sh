@@ -9,7 +9,7 @@ export JAVA_HOME="$jdk"
 export PATH="$jdk/bin:$PATH"
 mkdir -p "$probe_build/classes" "$probe_build/dex"
 "$build_tools/aapt2" link -o "$probe_build/probe.apk" -I "$sdk/platforms/android-37.0/android.jar" --manifest tools/verification/probe-manifest.xml
-"$jdk/bin/javac" -source 8 -target 8 -cp "$sdk/platforms/android-37.0/android.jar" -d "$probe_build/classes" tools/verification/DeviceProbe.java
+"$jdk/bin/javac" -source 8 -target 8 -cp "$sdk/platforms/android-37.0/android.jar" -d "$probe_build/classes" tools/verification/DeviceProbe.java tools/verification/DeviceSecurity.java
 "$jdk/bin/jar" cf "$probe_build/classes.jar" -C "$probe_build/classes" .
 JAVA_HOME="$jdk" "$build_tools/d8" --min-api 30 --lib "$sdk/platforms/android-37.0/android.jar" --output "$probe_build/dex" "$probe_build/classes.jar"
 python3 - "$probe_build" <<'PY'

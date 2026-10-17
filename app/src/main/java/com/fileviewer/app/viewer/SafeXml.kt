@@ -51,7 +51,6 @@ object SafeXml {
         val factory = SAXParserFactory.newInstance().apply {
             isNamespaceAware = true
             isValidating = false
-            isXIncludeAware = false
         }
         listOf(
             "http://apache.org/xml/features/disallow-doctype-decl" to true,

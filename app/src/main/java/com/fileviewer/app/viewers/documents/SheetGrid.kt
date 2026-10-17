@@ -13,6 +13,9 @@ class SheetGrid {
     private var maxCol = -1
 
     /** True when rows or columns past the limits were dropped. */
+    var htmlTruncated = false
+        private set
+
     var truncated = false
 
     val rowCount get() = rows.size
@@ -31,9 +34,9 @@ class SheetGrid {
         return true
     }
 
-    fun toHtml(): String {
+    fun toHtml(cap: Int = Limits.MAX_DOC_HTML_CHARS): String {
         if (rows.isEmpty()) return "<p class=\"empty\">This sheet has no cells with values.</p>"
-        val out = HtmlOut()
+        val out = HtmlOut(cap)
         try {
             out.raw("<table class=\"sheet\"><thead><tr><th class=\"corner\"></th>")
             for (c in 0..maxCol) out.raw("<th>${columnName(c)}</th>")
@@ -48,7 +51,7 @@ class SheetGrid {
             }
             out.raw("</tbody></table>")
         } catch (_: StopParsing) {
-            truncated = true
+            htmlTruncated = true
         }
         return out.finish()
     }

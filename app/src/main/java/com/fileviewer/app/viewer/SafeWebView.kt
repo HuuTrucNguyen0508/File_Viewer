@@ -19,6 +19,8 @@ object SafeWebView {
 
     fun create(context: Context, resolver: ((path: String) -> WebResourceResponse?)? = null): WebView =
         WebView(context).apply {
+            // API 30 WebView hardware drawing can erase the surrounding Compose controls.
+            setLayerType(android.view.View.LAYER_TYPE_SOFTWARE, null)
             settings.apply {
                 javaScriptEnabled = false
                 javaScriptCanOpenWindowsAutomatically = false

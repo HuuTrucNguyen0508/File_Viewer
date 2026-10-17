@@ -25,13 +25,13 @@ object LegacyText {
     fun extract(input: InputStream): PagePreview {
         val runs = ArrayList<Run>()
         var kept = 0L
-        val single = StringBuilder()
+        val single = DocBuffer()
         var singleStart = 0L
-        val wide = arrayOf(StringBuilder(), StringBuilder())
+        val wide = arrayOf(DocBuffer(), DocBuffer())
         val wideStart = longArrayOf(0, 0)
         val low = IntArray(2) { -1 }
 
-        fun keep(offset: Long, sb: StringBuilder, min: Int) {
+        fun keep(offset: Long, sb: DocBuffer, min: Int) {
             if (sb.length >= min) {
                 val t = sb.toString().trim()
                 if (t.length >= min && t !in NOISE && readable(t, ascii = min == MIN_8BIT)) { runs += Run(offset, t); kept += t.length }
@@ -47,6 +47,7 @@ object LegacyText {
             if (b < 0) break
             if (singleByte(b)) {
                 if (single.isEmpty()) singleStart = pos
+                if (single.length == Limits.MAX_DOC_HTML_CHARS) { keep(singleStart, single, MIN_8BIT); singleStart = pos }
                 single.append(cp1252(b))
             } else {
                 keep(singleStart, single, MIN_8BIT)
@@ -58,6 +59,7 @@ object LegacyText {
                 val ch = (low[other] or (b shl 8)).toChar()
                 if (wideChar(ch)) {
                     if (wide[other].isEmpty()) wideStart[other] = pos - 1
+                    if (wide[other].length == Limits.MAX_DOC_HTML_CHARS) { keep(wideStart[other], wide[other], MIN_16BIT); wideStart[other] = pos - 1 }
                     wide[other].append(ch)
                 } else {
                     keep(wideStart[other], wide[other], MIN_16BIT)

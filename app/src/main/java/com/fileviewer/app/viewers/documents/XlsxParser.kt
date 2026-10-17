@@ -13,14 +13,22 @@ object XlsxParser {
         val formats = rels.byType("styles")?.let { styles(pkg, it, info.date1904) } ?: XlsxFormats(emptyMap(), emptyList(), info.date1904)
         val notes = ArrayList<String>()
         if (info.sheets.size > Limits.MAX_DOC_SECTIONS) notes += "Only the first ${Limits.MAX_DOC_SECTIONS} sheets are shown."
-        val sheets = info.sheets.take(Limits.MAX_DOC_SECTIONS).map { (name, relId) ->
-            val path = rels.path(relId)
-            if (path == null || !pkg.has(path)) {
-                Sheet(name, "<p class=\"empty\">This sheet has no cells the preview can show.</p>", false)
-            } else {
-                val grid = SheetGrid()
-                pkg.read(path) { XmlScan.parse(it, SheetHandler(grid, strings, formats)) }
-                Sheet(name, grid.toHtml(), grid.truncated)
+        var budget = Limits.MAX_DOC_HTML_CHARS
+        val sheets = buildList {
+            for ((name, relId) in info.sheets.take(Limits.MAX_DOC_SECTIONS)) {
+                if (budget <= 0) { notes += CUT_NOTE; break }
+                val path = rels.path(relId)
+                val sheet = if (path == null || !pkg.has(path)) {
+                    Sheet(name, "<p class=\"empty\">This sheet has no cells the preview can show.</p>", false)
+                } else {
+                    val grid = SheetGrid()
+                    pkg.read(path) { XmlScan.parse(it, SheetHandler(grid, strings, formats)) }
+                    val html = grid.toHtml(budget)
+                    if (grid.htmlTruncated && CUT_NOTE !in notes) notes += CUT_NOTE
+                    Sheet(name, html, grid.truncated)
+                }
+                add(sheet)
+                budget -= sheet.html.length
             }
         }
         if (sheets.any { it.truncated }) {
@@ -55,7 +63,7 @@ object XlsxParser {
         val list = ArrayList<String>()
         pkg.read(path) { input ->
             XmlScan.parse(input, object : XmlHandler() {
-                val sb = StringBuilder()
+                val sb = DocBuffer()
                 var inT = false
                 var phonetic = 0
                 override fun start(name: String, attrs: Attrs) {
@@ -105,7 +113,7 @@ object XlsxParser {
         private var col = -1
         private var type: String? = null
         private var style: Int? = null
-        private val value = StringBuilder()
+        private val value = DocBuffer()
         private var inValue = false
         private var inInline = false
 

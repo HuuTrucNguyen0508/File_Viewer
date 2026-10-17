@@ -16,7 +16,7 @@ object OdfParser {
         return when (format) {
             DocumentFormat.ODS -> SheetsPreview(
                 h.sheets,
-                listOfNotNull("Large sheets show their first ${Limits.MAX_SHEET_ROWS} rows and ${Limits.MAX_SHEET_COLS} columns.".takeIf { h.sheets.any { it.truncated } }),
+                listOfNotNull(CUT_NOTE.takeIf { h.cut }, "Large sheets show their first ${Limits.MAX_SHEET_ROWS} rows and ${Limits.MAX_SHEET_COLS} columns.".takeIf { h.sheets.any { it.truncated } }),
             )
             DocumentFormat.ODP -> {
                 val deck = SlideHtml.deck(h.slides.size) { i, _ -> h.slides[i] to false }
@@ -29,8 +29,8 @@ object OdfParser {
     private val SKIPPED = setOf("note", "annotation", "tracked-changes", "notes", "forms", "object", "event-listeners")
 
     private class Para(val heading: Int?, val base: RunStyle) {
-        val html = StringBuilder()
-        val plain = StringBuilder()
+        val html = DocBuffer()
+        val plain = DocBuffer()
         var visible = false
     }
 
@@ -48,12 +48,13 @@ object OdfParser {
         private val paras = ArrayList<Para>()
         private val spans = ArrayList<RunStyle>()
         private val lists = ArrayList<String?>()
-        private val deferred = StringBuilder()
+        private val deferred = DocBuffer()
         private var frameHasImage = false
 
         // Spreadsheet state.
         private var grid: SheetGrid? = null
         private var sheetName = ""
+        private var sheetBudget = Limits.MAX_DOC_HTML_CHARS
         private var sheetFull = false
         private var row = 1
         private var rowRepeat = 1
@@ -63,12 +64,12 @@ object OdfParser {
 
         // Presentation state.
         private var slideOut: HtmlOut? = null
-        private val slideTitle = StringBuilder()
+        private val slideTitle = DocBuffer()
         private var titleFrame = 0
         private var slideBudget = Limits.MAX_DOC_HTML_CHARS
 
         private class CellState(val repeat: Int, val numeric: Boolean, val value: String?) {
-            val text = StringBuilder()
+            val text = DocBuffer()
         }
 
         override fun start(name: String, attrs: Attrs) {
@@ -175,7 +176,7 @@ object OdfParser {
         private fun closeLists() = out.closeLists()
 
         private fun startSheet(name: String?) {
-            if (sheets.size >= Limits.MAX_DOC_SECTIONS) throw StopParsing()
+            if (sheets.size >= Limits.MAX_DOC_SECTIONS || sheetBudget <= 0) { cut = true; throw StopParsing() }
             grid = SheetGrid()
             sheetName = name ?: "Sheet ${sheets.size + 1}"
             sheetFull = false
@@ -215,7 +216,10 @@ object OdfParser {
 
         private fun endSheet() {
             val g = grid ?: return
-            sheets += Sheet(sheetName, g.toHtml(), g.truncated)
+            val html = g.toHtml(sheetBudget)
+            if (g.htmlTruncated) cut = true
+            sheets += Sheet(sheetName, html, g.truncated)
+            sheetBudget -= html.length
             grid = null
         }
 

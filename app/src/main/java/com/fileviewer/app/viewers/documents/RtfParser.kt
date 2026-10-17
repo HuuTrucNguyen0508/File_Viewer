@@ -30,10 +30,10 @@ object RtfParser {
         val p = Parser(src)
         try {
             p.run()
+            p.flushParagraph()
+            p.closeTable()
         } catch (_: StopParsing) {
         }
-        p.flushParagraph()
-        p.closeTable()
         return PagePreview(p.out.finish(), PageKind.Text, listOfNotNull(CUT_NOTE.takeIf { p.out.truncated }))
     }
 
@@ -42,8 +42,8 @@ object RtfParser {
         private var i = 0
         private val stack = ArrayList<State>()
         private var st = State()
-        private val para = StringBuilder()
-        private val run = StringBuilder()
+        private val para = DocBuffer()
+        private val run = DocBuffer()
         private var runStyle = RunStyle()
         private var paraHasText = false
         private var inTable = false

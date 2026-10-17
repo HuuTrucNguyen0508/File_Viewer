@@ -82,7 +82,7 @@ object ChapterHtml {
 
         override fun text(raw: String) {
             if (dropTag != null || svg > 0) return
-            out.raw(HtmlTokens.safeText(raw))
+            out.raw(HtmlTokens.safeText(raw.take(out.remaining + 1)))
         }
 
         fun closeAll() {

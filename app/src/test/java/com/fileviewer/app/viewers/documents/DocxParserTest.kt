@@ -98,4 +98,33 @@ class DocxParserTest {
         val pkg = DocFixtures.pkgOf(mapOf("word/document.xml" to huge))
         assertThrows(LimitExceededException::class.java) { pkg.use { DocxParser.parse(it) } }
     }
+    @Test fun textBoxTableKeepsCellTextInsideItsTable() {
+        val xml = "<w:document ${DocFixtures.NS_W}><w:body><w:p><w:r><w:drawing><w:txbxContent>" +
+            "<w:tbl><w:tr><w:tc><w:p><w:r><w:t>Box cell</w:t></w:r></w:p></w:tc></w:tr></w:tbl>" +
+            "</w:txbxContent></w:drawing></w:r></w:p></w:body></w:document>"
+        DocFixtures.pkg("word/document.xml" to xml).use { pkg ->
+            val html = DocxParser.parse(pkg).html
+            assertTrue(html, Regex("<td>.*Box cell.*</td>").containsMatchIn(html))
+        }
+    }
+
+    @Test fun oldTrackedRunPropertiesDoNotOverrideCurrentFormatting() {
+        val xml = "<w:document ${DocFixtures.NS_W}><w:body><w:p><w:r><w:rPr><w:b/>" +
+            "<w:rPrChange><w:rPr><w:b w:val=\"0\"/></w:rPr></w:rPrChange></w:rPr>" +
+            "<w:t>Current bold</w:t></w:r></w:p></w:body></w:document>"
+        DocFixtures.pkg("word/document.xml" to xml).use { pkg ->
+            assertTrue(DocxParser.parse(pkg).html.contains("<strong>Current bold</strong>"))
+        }
+    }
+
+    @Test fun oldTrackedCellPropertiesDoNotOverrideCurrentSpan() {
+        val xml = "<w:document ${DocFixtures.NS_W}><w:body><w:tbl><w:tr><w:tc><w:tcPr>" +
+            "<w:gridSpan w:val=\"2\"/><w:tcPrChange><w:tcPr><w:gridSpan w:val=\"3\"/>" +
+            "</w:tcPr></w:tcPrChange></w:tcPr><w:p><w:r><w:t>Current cell</w:t></w:r></w:p>" +
+            "</w:tc></w:tr></w:tbl></w:body></w:document>"
+        DocFixtures.pkg("word/document.xml" to xml).use { pkg ->
+            assertTrue(DocxParser.parse(pkg).html.contains("colspan=\"2\""))
+        }
+    }
+
 }

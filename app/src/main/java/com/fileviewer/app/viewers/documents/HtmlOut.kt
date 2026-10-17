@@ -3,7 +3,10 @@ package com.fileviewer.app.viewers.documents
 import com.fileviewer.app.source.Limits
 import com.fileviewer.app.viewer.html.HtmlPage
 
-fun esc(s: String): String = HtmlPage.escape(s)
+fun esc(s: String): String {
+    if (s.length > Limits.MAX_DOC_HTML_CHARS) throw DocumentException("A text block is too large to preview. Open Text to read it.")
+    return HtmlPage.escape(s)
+}
 
 /** Character formatting shared by the Office and ODF parsers. */
 data class RunStyle(
@@ -39,17 +42,25 @@ class HtmlOut(private val cap: Int = Limits.MAX_DOC_HTML_CHARS) {
         private set
 
     val length get() = sb.length
+    val remaining get() = (cap - sb.length).coerceAtLeast(0)
 
     fun raw(s: String) {
         if (truncated) throw StopParsing()
-        sb.append(s)
-        if (sb.length > cap) {
+        val remaining = (cap - sb.length).coerceAtLeast(0)
+        if (s.length > remaining) {
+            sb.append(s, 0, remaining)
             truncated = true
             throw StopParsing()
         }
+        sb.append(s)
     }
 
     fun text(s: String) = raw(esc(s))
+
+    fun truncate(): Nothing {
+        truncated = true
+        throw StopParsing()
+    }
 
     /** One list item at nesting [level] (0-based), opening and closing `<ul>`/`<ol>` as needed. */
     fun listItem(level: Int, ordered: Boolean, html: String) {

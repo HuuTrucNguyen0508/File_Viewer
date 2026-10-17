@@ -29,13 +29,13 @@ object PptxParser {
     private enum class Role { Title, Body, Plain, Skip }
 
     private class SlideHandler(val out: HtmlOut, val rels: OoxmlRels) : XmlHandler() {
-        val title = StringBuilder()
+        val title = DocBuffer()
         private var role = Role.Plain
         private var table = 0
         private var level = 0
         private var bullet: Boolean? = null
         private var numbered = false
-        private val para = StringBuilder()
+        private val para = DocBuffer()
         private var paraText = false
         private var run = RunStyle()
         private var inText = false

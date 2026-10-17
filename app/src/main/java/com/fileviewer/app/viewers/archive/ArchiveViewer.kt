@@ -102,7 +102,7 @@ private fun Tree(source: FileSource, format: ArchiveFormat, listing: ArchiveList
                 if (child.isDirectory) {
                     FileRow(
                         name = child.name,
-                        detail = "${child.children.size} items",
+                        detail = child.children.size.let { if (it == 1) "1 item" else "$it items" },
                         tile = { FolderTile() },
                         onClick = { path = child.path },
                     )

@@ -126,6 +126,29 @@ class ArchiveAccessTest {
         assertEquals(null, entrySource.seekableOrNull())
     }
 
+    @Test fun invalidCompressedHeaderClosesSource() {
+        var closed = false
+        val src = object : FileSource by BytesSource("bad.gz", byteArrayOf(1, 2, 3)) {
+            override fun openStream() = object : java.io.ByteArrayInputStream(byteArrayOf(1, 2, 3)) {
+                override fun close() { closed = true; super.close() }
+            }
+        }
+        assertThrows(java.io.IOException::class.java) { ArchiveAccess.list(ArchiveFormat.GZIP, src, null) }
+        assertTrue("Failed decompressor construction must close the source", closed)
+    }
+
+    @Test fun truncatedTarEntryLookupClosesSource() {
+        val bytes = ByteArrayOutputStream().also { tar(it, "first.txt" to "body") }.toByteArray().copyOf(700)
+        var closed = false
+        val src = object : FileSource by BytesSource("bad.tar", bytes) {
+            override fun openStream() = object : java.io.ByteArrayInputStream(bytes) {
+                override fun close() { closed = true; super.close() }
+            }
+        }
+        assertThrows(java.io.IOException::class.java) { ArchiveAccess.openEntry(ArchiveFormat.TAR, src, null, "missing") }
+        assertTrue("Failed entry lookup must close the source", closed)
+    }
+
     @Test fun innerNames() {
         assertEquals("a.txt", ArchiveAccess.innerName("a.txt.gz", ArchiveFormat.GZIP))
         assertEquals("dump.out", ArchiveAccess.innerName("dump", ArchiveFormat.XZ))

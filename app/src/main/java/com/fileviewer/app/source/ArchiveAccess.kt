@@ -74,10 +74,10 @@ object ArchiveAccess {
         }
         ArchiveFormat.TAR, ArchiveFormat.AR -> streamArchive(format, source.openStream()).use { collectStream(it) }
         ArchiveFormat.GZIP, ArchiveFormat.BZIP2, ArchiveFormat.XZ -> {
-            val decompressed = BufferedInputStream(decompress(format, source.openStream()), 64 * 1024)
+            val decompressed = decompressed(format, source)
             decompressed.use {
                 if (startsWithTar(it)) {
-                    collectStream(TarArchiveInputStream(LimitedInputStream(it, Limits.MAX_ARCHIVE_SCAN_BYTES, source.name)))
+                    collectStream(TarArchiveInputStream(it))
                 } else {
                     ArchiveListing(listOf(ArchiveEntry(innerName(source.name, format), false, null, source.size, null)), false, true)
                 }
@@ -98,18 +98,24 @@ object ArchiveAccess {
                     val e = z.getEntry(path) ?: z.getEntry("/$path") ?: run { z.close(); throw IOException("No entry $path") }
                     if (e.generalPurposeBit.usesEncryption()) { z.close(); throw ArchiveUnsupportedException("This entry is password-protected.") }
                     if (!z.canReadEntryData(e)) { z.close(); throw ArchiveUnsupportedException("This entry uses a compression method the app can't read.") }
-                    z.getInputStream(e).onClose { z.close(); seekable?.close() }
+                    try {
+                        z.getInputStream(e).onClose { try { z.close() } finally { seekable?.close() } }
+                    } catch (t: Throwable) { z.close(); throw t }
                 }
                 ArchiveFormat.SEVEN_Z -> {
                     val z = sevenZ(requireSeekable(seekable))
                     val e = z.entries.firstOrNull { it.name.trimStart('/') == path } ?: run { z.close(); throw IOException("No entry $path") }
                     if (e.isEncrypted()) { z.close(); throw ArchiveUnsupportedException("This entry is password-protected.") }
-                    z.getInputStream(e).onClose { z.close(); seekable?.close() }
+                    try {
+                        z.getInputStream(e).onClose { try { z.close() } finally { seekable?.close() } }
+                    } catch (t: Throwable) { z.close(); throw t }
                 }
                 ArchiveFormat.TAR, ArchiveFormat.AR -> seekToEntry(streamArchive(format, source.openStream()), path)
                 ArchiveFormat.GZIP, ArchiveFormat.BZIP2, ArchiveFormat.XZ -> {
-                    val decompressed = BufferedInputStream(decompress(format, source.openStream()), 64 * 1024)
-                    if (startsWithTar(decompressed)) seekToEntry(TarArchiveInputStream(decompressed), path) else decompressed
+                    val decompressed = decompressed(format, source)
+                    try {
+                        if (startsWithTar(decompressed)) seekToEntry(TarArchiveInputStream(decompressed), path) else decompressed
+                    } catch (t: Throwable) { decompressed.close(); throw t }
                 }
                 ArchiveFormat.RAR -> throw ArchiveUnsupportedException("RAR archives can't be opened yet.")
             }.also { if (!needsSeekable(format)) seekable?.close() }
@@ -123,7 +129,7 @@ object ArchiveAccess {
 
     private fun zip(s: SeekableSource): ZipFile = ZipFile.builder().setSeekableByteChannel(s.channel()).get()
 
-    private fun sevenZ(s: SeekableSource): SevenZFile = SevenZFile.builder().setSeekableByteChannel(s.channel()).get()
+    private fun sevenZ(s: SeekableSource): SevenZFile = SevenZFile.builder().setSeekableByteChannel(s.channel()).setMaxMemoryLimitKiB(Limits.MAX_DECOMPRESSOR_MEMORY_KIB).get()
 
     private fun SevenZArchiveEntry.isEncrypted(): Boolean =
         runCatching { contentMethods?.any { it.method == SevenZMethod.AES256SHA256 } == true }.getOrDefault(false)
@@ -135,13 +141,16 @@ object ArchiveAccess {
 
     private fun decompress(format: ArchiveFormat, input: InputStream): InputStream {
         val buffered = BufferedInputStream(input, 64 * 1024)
-        return when (format) {
+        return try { when (format) {
             ArchiveFormat.GZIP -> GzipCompressorInputStream.builder().setInputStream(buffered).setDecompressConcatenated(true).get()
             ArchiveFormat.BZIP2 -> BZip2CompressorInputStream(buffered, true)
-            ArchiveFormat.XZ -> XZCompressorInputStream(buffered, true)
+            ArchiveFormat.XZ -> XZCompressorInputStream(buffered, true, Limits.MAX_DECOMPRESSOR_MEMORY_KIB)
             else -> error("not a compressor: $format")
-        }
+        } } catch (t: Throwable) { buffered.close(); throw t }
     }
+
+    private fun decompressed(format: ArchiveFormat, source: FileSource): BufferedInputStream =
+        BufferedInputStream(LimitedInputStream(decompress(format, source.openStream()), Limits.MAX_ARCHIVE_SCAN_BYTES, source.name), 64 * 1024)
 
     /** Peeks for the `ustar` magic at offset 257 without consuming the stream. */
     private fun startsWithTar(input: BufferedInputStream): Boolean {
@@ -167,6 +176,7 @@ object ArchiveAccess {
     private fun collect(entries: Sequence<ArchiveEntry>): ArchiveListing {
         val list = ArrayList<ArchiveEntry>()
         for (e in entries) {
+            if (Thread.currentThread().isInterrupted) throw java.io.InterruptedIOException("Archive scan cancelled")
             if (list.size >= Limits.MAX_ARCHIVE_ENTRIES) return ArchiveListing(list, true)
             list += e
         }
@@ -186,10 +196,15 @@ object ArchiveAccess {
     }.filter { it.path.isNotEmpty() })
 
     private fun seekToEntry(input: ArchiveInputStream<*>, path: String): InputStream {
-        while (true) {
-            val e = input.nextEntry ?: run { input.close(); throw IOException("No entry $path") }
-            if (e.name.trimStart('/').removePrefix("./") == path) return input
-        }
+        try {
+            var scanned = 0
+            while (scanned++ < Limits.MAX_ARCHIVE_ENTRIES) {
+                if (Thread.currentThread().isInterrupted) throw java.io.InterruptedIOException("Archive scan cancelled")
+                val e = input.nextEntry ?: throw IOException("No entry $path")
+                if (e.name.trimStart('/').removePrefix("./") == path) return input
+            }
+            throw LimitExceededException("Archive entries", Limits.MAX_ARCHIVE_ENTRIES.toLong())
+        } catch (t: Throwable) { input.close(); throw t }
     }
 
     private fun InputStream.onClose(block: () -> Unit): InputStream = object : FilterInputStream(this) {

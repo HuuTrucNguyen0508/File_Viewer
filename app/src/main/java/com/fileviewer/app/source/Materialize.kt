@@ -1,8 +1,6 @@
 package com.fileviewer.app.source
 
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ensureActive
-import kotlinx.coroutines.withContext
 import java.io.File
 import java.io.FileOutputStream
 import kotlin.coroutines.coroutineContext
@@ -19,15 +17,15 @@ suspend fun FileSource.materialize(
     cache: MaterializeCache = MaterializeCache.default,
     requireDescriptor: Boolean = false,
     progress: (Long) -> Unit = {},
-): SeekableSource = withContext(Dispatchers.IO) {
+): SeekableSource = acquireResource {
     seekableOrNull()?.let { s ->
-        if (!requireDescriptor || s.file != null || s.openFileDescriptor()?.also { it.close() } != null) return@withContext s
+        if (!requireDescriptor || s.file != null || s.openFileDescriptor()?.also { it.close() } != null) return@acquireResource s
         s.close()
     }
-    cache.existing(key)?.let { return@withContext FileSeekable(it) }
+    cache.existing(key)?.let { return@acquireResource FileSeekable(it) }
 
     val dir = cache.dirFor(key)
-    val part = File(dir, MaterializeCache.PARTIAL)
+    val part = File(dir, "${java.util.UUID.randomUUID()}.part")
     val target = File(dir, MaterializeCache.CONTENT)
     try {
         LimitedInputStream(openStream(), Limits.MAX_MATERIALIZE_BYTES, name).use { input ->

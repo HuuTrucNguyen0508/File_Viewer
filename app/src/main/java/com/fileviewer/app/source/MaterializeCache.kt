@@ -29,7 +29,7 @@ class MaterializeCache(private val root: File, private val maxBytes: Long = Limi
         var total = dirs.sumOf { dirSize(it) }
         for (dir in dirs.sortedBy { it.lastModified() }) {
             if (total <= maxBytes) break
-            if (dir.name == keepDir) continue
+            if (dir.name == keepDir || dir.listFiles().orEmpty().any { it.name.endsWith(".part") }) continue
             total -= dirSize(dir)
             dir.deleteRecursively()
         }

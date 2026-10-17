@@ -1,7 +1,6 @@
 package com.fileviewer.app.viewer
 
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.produceState
 import com.fileviewer.app.source.FileSource
@@ -10,6 +9,7 @@ import com.fileviewer.app.source.materialize
 import com.fileviewer.app.ui.components.CopyProgress
 import com.fileviewer.app.ui.components.Message
 import kotlin.coroutines.cancellation.CancellationException
+import kotlinx.coroutines.awaitCancellation
 
 sealed interface SeekState {
     data class Copying(val copied: Long, val total: Long?) : SeekState
@@ -21,22 +21,25 @@ sealed interface SeekState {
 @Composable
 fun rememberSeekable(source: FileSource, requireDescriptor: Boolean = false): SeekState {
     val state by produceState<SeekState>(SeekState.Copying(0, source.size), source) {
-        value = try {
+        var opened: SeekableSource? = null
+        try {
             var lastReported = 0L
-            SeekState.Ready(source.materialize(requireDescriptor = requireDescriptor) { copied ->
+            opened = source.materialize(requireDescriptor = requireDescriptor) { copied ->
                 if (copied - lastReported >= 1 shl 20) {
                     lastReported = copied
                     value = SeekState.Copying(copied, source.size)
                 }
-            })
+            }
+            value = SeekState.Ready(opened)
+            awaitCancellation()
         } catch (e: CancellationException) {
             throw e
         } catch (e: Exception) {
-            SeekState.Failed(e.message ?: e.javaClass.simpleName)
+            value = SeekState.Failed(e.message ?: e.javaClass.simpleName)
+        } finally {
+            opened?.close()
         }
     }
-    val ready = state as? SeekState.Ready
-    DisposableEffect(ready) { onDispose { ready?.seekable?.close() } }
     return state
 }
 

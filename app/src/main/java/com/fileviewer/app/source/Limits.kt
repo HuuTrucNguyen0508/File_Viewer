@@ -3,6 +3,7 @@ package com.fileviewer.app.source
 import java.io.FilterInputStream
 import java.io.IOException
 import java.io.InputStream
+import java.io.InterruptedIOException
 
 /** Every resource bound in the app lives here so viewers never pick their own. */
 object Limits {
@@ -25,6 +26,8 @@ object Limits {
     const val MAX_CACHE_BYTES = 1L shl 30
 
     const val MAX_ARCHIVE_ENTRIES = 100_000
+
+    const val MAX_DECOMPRESSOR_MEMORY_KIB = 64 * 1024
 
     /** Archive inside archive inside archive... deeper than this opens in Hex/Info only. */
     const val MAX_ARCHIVE_DEPTH = 4
@@ -70,21 +73,33 @@ class LimitedInputStream(input: InputStream, private val limit: Long, private va
         private set
 
     override fun read(): Int {
-        val b = super.read()
+        checkInterrupted()
+        val b = `in`.read()
         if (b >= 0) advance(1)
         return b
     }
 
     override fun read(b: ByteArray, off: Int, len: Int): Int {
-        val n = super.read(b, off, len)
+        checkInterrupted()
+        val allowed = minOf(len.toLong(), (limit - count + 1).coerceAtLeast(1)).toInt()
+        val n = `in`.read(b, off, allowed)
         if (n > 0) advance(n.toLong())
         return n
     }
 
     override fun skip(n: Long): Long {
-        val skipped = super.skip(n)
-        if (skipped > 0) advance(skipped)
+        val buffer = ByteArray(minOf(n.coerceAtLeast(0), 8192).toInt())
+        var skipped = 0L
+        while (skipped < n) {
+            val read = read(buffer, 0, minOf(buffer.size.toLong(), n - skipped).toInt())
+            if (read < 0) break
+            skipped += read
+        }
         return skipped
+    }
+
+    private fun checkInterrupted() {
+        if (Thread.currentThread().isInterrupted) throw InterruptedIOException("Read cancelled")
     }
 
     private fun advance(n: Long) {

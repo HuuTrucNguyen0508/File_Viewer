@@ -58,7 +58,7 @@ class FdSeekable(
     private val start: Long,
     override val size: Long,
 ) : SeekableSource {
-    private val input = java.io.FileInputStream(pfd.fileDescriptor)
+    private val input = ParcelFileDescriptor.AutoCloseInputStream(pfd)
     private val ch: FileChannel = input.channel
     override val file: File? = null
 
@@ -68,11 +68,10 @@ class FdSeekable(
         return ch.read(ByteBuffer.wrap(dst, offset, len), start + position)
     }
 
-    override fun openFileDescriptor(): ParcelFileDescriptor? = if (start == 0L) pfd.dup() else null
+    override fun openFileDescriptor(): ParcelFileDescriptor? = if (start == 0L && size == pfd.statSize) pfd.dup() else null
 
     override fun close() {
         input.close()
-        pfd.close()
     }
 }
 

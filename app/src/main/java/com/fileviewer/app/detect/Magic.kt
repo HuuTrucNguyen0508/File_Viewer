@@ -81,7 +81,7 @@ object Magic {
 
     /** ISO base media (MP4 family, HEIF, AVIF): major brand at 8, compatible brands after 16. */
     private fun isoBmff(m: Header): FileKind {
-        val boxSize = m.u32be(0).toInt().coerceIn(16, minOf(m.len, 256))
+        val boxSize = m.u32be(0).coerceIn(0L, minOf(m.len, 256).toLong()).toInt()
         val brands = buildList {
             add(m.string(8, 4))
             var i = 16

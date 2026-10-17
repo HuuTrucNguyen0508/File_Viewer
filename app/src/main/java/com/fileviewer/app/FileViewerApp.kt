@@ -14,10 +14,10 @@ import kotlin.concurrent.thread
 class FileViewerApp : Application(), SingletonImageLoader.Factory {
     override fun onCreate() {
         super.onCreate()
-        val cache = MaterializeCache(File(cacheDir, "materialized"))
-        MaterializeCache.default = cache
-        // Cached copies are only valid for the session that made them.
-        thread(name = "cache-clear") { cache.clear() }
+        val root = File(cacheDir, "materialized")
+        val session = File(root, java.util.UUID.randomUUID().toString())
+        MaterializeCache.default = MaterializeCache(session)
+        thread(name = "cache-clear") { root.listFiles()?.filter { it != session }?.forEach { it.deleteRecursively() } }
         TextMate.start(this)
     }
 

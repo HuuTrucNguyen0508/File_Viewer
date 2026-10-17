@@ -157,4 +157,8 @@ class FileTypeDetectorTest {
         assertEquals(FileKind.Archive(ArchiveFormat.GZIP), detect("a.tar.gz", gz))
         assertTrue(detect("empty.txt", ByteArray(0)) is FileKind.Text)
     }
+    @Test fun truncatedFtypHeaderDoesNotCrashDetection() {
+        val header = byteArrayOf(0, 0, 0, 24) + "ftyp".toByteArray()
+        assertEquals(FileKind.Media(MediaFormat.MP4), FileTypeDetector.detect("broken.mp4", null, header, header.size, false))
+    }
 }

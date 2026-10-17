@@ -47,6 +47,10 @@ class ContentUriSource private constructor(
         } else {
             afd.declaredLength
         }
+        if (start < 0 || length < 0 || start > pfd.statSize || length > pfd.statSize - start) {
+            afd.close()
+            return null
+        }
         return FdSeekable(pfd, start, length)
     }
 
@@ -65,7 +69,7 @@ class ContentUriSource private constructor(
                         c.getColumnIndex(OpenableColumns.DISPLAY_NAME).takeIf { it >= 0 && !c.isNull(it) }
                             ?.let { name = c.getString(it) }
                         c.getColumnIndex(OpenableColumns.SIZE).takeIf { it >= 0 && !c.isNull(it) }
-                            ?.let { size = c.getLong(it) }
+                            ?.let { size = c.getLong(it).takeIf { n -> n >= 0 } }
                         c.getColumnIndex(DocumentsContract.Document.COLUMN_LAST_MODIFIED)
                             .takeIf { it >= 0 && !c.isNull(it) }?.let { modified = c.getLong(it) }
                     }

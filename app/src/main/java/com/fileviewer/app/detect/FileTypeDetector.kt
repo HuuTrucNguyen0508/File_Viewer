@@ -17,6 +17,8 @@ object FileTypeDetector {
         val header = ByteArray(Limits.HEADER_BYTES)
         val n = try {
             source.openStream().use { it.readFully(header) }
+        } catch (_: SecurityException) {
+            return FileKind.Binary("Read permission unavailable")
         } catch (_: IOException) {
             return ExtensionTable.byName(source.name) ?: MimeTable.kindFor(source.mimeHint) ?: FileKind.Binary()
         }

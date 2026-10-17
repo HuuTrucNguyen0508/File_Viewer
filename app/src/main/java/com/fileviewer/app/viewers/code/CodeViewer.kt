@@ -25,6 +25,7 @@ import com.fileviewer.app.ui.components.Loading
 import com.fileviewer.app.ui.components.Message
 import com.fileviewer.app.ui.formatSize
 import com.fileviewer.app.ui.theme.Fv
+import kotlinx.coroutines.runInterruptible
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.nio.charset.Charset
@@ -43,7 +44,7 @@ private sealed interface Bytes {
 @Composable
 fun CodeViewer(source: FileSource, kind: FileKind, highlight: Boolean) {
     val bytes by produceState<Bytes>(Bytes.Loading, source) {
-        value = withContext(Dispatchers.IO) {
+        value = runInterruptible(Dispatchers.IO) {
             try {
                 source.openStream().use { TextLoader.readCapped(it) }?.let { Bytes.Ready(it) } ?: Bytes.TooLarge
             } catch (e: Exception) {
@@ -66,8 +67,9 @@ private fun LoadedCode(data: ByteArray, kind: FileKind, highlight: Boolean) {
     val tooBigToHighlight = data.size > Limits.MAX_HIGHLIGHT_BYTES
     val defaultLanguage = if (highlight && !tooBigToHighlight) kind.sourceLanguage else null
 
-    var charset by remember(data) { mutableStateOf((kind as? FileKind.Text)?.charset ?: TextLoader.detectCharset(data)) }
-    var language by remember(data, highlight) { mutableStateOf(defaultLanguage) }
+    var charsetName by rememberSaveable { mutableStateOf(((kind as? FileKind.Text)?.charset ?: TextLoader.detectCharset(data)).name()) }
+    val charset = Charset.forName(charsetName)
+    var language by rememberSaveable(highlight) { mutableStateOf(defaultLanguage) }
     var wrap by rememberSaveable { mutableStateOf(kind.sourceLanguage == null) }
     var finding by remember { mutableStateOf(false) }
     var goingToLine by remember { mutableStateOf(false) }
@@ -87,7 +89,7 @@ private fun LoadedCode(data: ByteArray, kind: FileKind, highlight: Boolean) {
             onGoToLine = { goingToLine = true },
             onWrap = { wrap = !wrap },
             onLanguage = { language = it },
-            onCharset = { charset = it },
+            onCharset = { charsetName = it.name() },
         )
         if (finding) FindBar(controller, onClose = { finding = false; controller.stopSearch() })
         val notes = listOfNotNull(

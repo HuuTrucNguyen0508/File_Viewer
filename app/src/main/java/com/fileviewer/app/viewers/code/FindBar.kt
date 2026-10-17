@@ -17,7 +17,6 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -33,20 +32,16 @@ import kotlinx.coroutines.delay
 @Composable
 fun FindBar(controller: EditorController, onClose: () -> Unit) {
     var query by remember { mutableStateOf("") }
-    var count by remember { mutableIntStateOf(0) }
-    var current by remember { mutableIntStateOf(-1) }
+    val count = controller.matches.count
+    val current = controller.matches.current
     val focus = remember { FocusRequester() }
     LaunchedEffect(Unit) { focus.requestFocus() }
     LaunchedEffect(query) {
         delay(200)
         controller.search(query)
-        // Sora counts matches on a background thread; poll briefly for the result.
-        repeat(10) { count = controller.matchCount(); current = controller.currentMatch(); delay(100) }
     }
     fun step(forward: Boolean) {
         if (forward) controller.next() else controller.previous()
-        current = controller.currentMatch()
-        count = controller.matchCount()
     }
     Row(Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
         OutlinedTextField(

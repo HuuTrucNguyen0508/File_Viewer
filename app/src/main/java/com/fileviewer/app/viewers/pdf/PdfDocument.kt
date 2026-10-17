@@ -51,7 +51,9 @@ class PdfDocument private constructor(private val renderer: PdfRenderer, private
         }
         val bitmap = createBitmap(w, h)
         bitmap.eraseColor(Color.WHITE)
-        renderer.openPage(page).use { it.render(bitmap, null, null, PdfRenderer.Page.RENDER_MODE_FOR_DISPLAY) }
+        try {
+            renderer.openPage(page).use { it.render(bitmap, null, null, PdfRenderer.Page.RENDER_MODE_FOR_DISPLAY) }
+        } catch (t: Throwable) { bitmap.recycle(); throw t }
         cache.put(key(page, widthPx), bitmap)
         bitmap
     }
@@ -70,11 +72,16 @@ class PdfDocument private constructor(private val renderer: PdfRenderer, private
 
     companion object {
         /** Throws SecurityException for password-protected files. Takes ownership of [fd]. */
-        fun open(fd: ParcelFileDescriptor): PdfDocument = try {
-            PdfDocument(PdfRenderer(fd), fd)
-        } catch (t: Throwable) {
-            fd.close()
-            throw t
+        fun open(fd: ParcelFileDescriptor): PdfDocument {
+            var renderer: PdfRenderer? = null
+            try {
+                renderer = PdfRenderer(fd)
+                return PdfDocument(renderer, fd)
+            } catch (t: Throwable) {
+                renderer?.close()
+                fd.close()
+                throw t
+            }
         }
     }
 }

@@ -16,9 +16,9 @@ object MediaProbe {
 
     /** Blocking; stream-only sources are materialized first. */
     suspend fun probe(context: Context, source: FileSource): Facts {
+        val seekable = if (source is LocalFileSource || source is ContentUriSource) null else source.materialize()
         val retriever = MediaMetadataRetriever()
         val extractor = MediaExtractor()
-        val seekable = if (source is LocalFileSource || source is ContentUriSource) null else source.materialize()
         try {
             when {
                 source is LocalFileSource -> { retriever.setDataSource(source.file.path); extractor.setDataSource(source.file.path) }

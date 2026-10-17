@@ -15,6 +15,7 @@ object TextLoader {
         val buf = ByteArray(64 * 1024)
         var total = 0L
         while (true) {
+            if (Thread.currentThread().isInterrupted) throw java.io.InterruptedIOException("Read cancelled")
             val n = input.read(buf)
             if (n < 0) return out.toByteArray()
             total += n

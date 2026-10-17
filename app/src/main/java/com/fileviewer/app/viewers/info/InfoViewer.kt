@@ -20,6 +20,7 @@ import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
@@ -82,7 +83,7 @@ private fun HashSection(source: FileSource) {
     val scope = rememberCoroutineScope()
     var job by remember { mutableStateOf<Job?>(null) }
     var hashed by remember { mutableLongStateOf(0L) }
-    var result by remember { mutableStateOf<Map<String, String>?>(null) }
+    var result by rememberSaveable(source.key) { mutableStateOf<Map<String, String>?>(null) }
     var error by remember { mutableStateOf<String?>(null) }
     Section("Checksums")
     val r = result
@@ -96,12 +97,13 @@ private fun HashSection(source: FileSource) {
             } else {
                 LinearProgressIndicator(Modifier.fillMaxWidth().padding(vertical = 8.dp))
             }
-            TextButton(onClick = { job?.cancel(); job = null }) { Text("Stop") }
+            TextButton(onClick = { job?.cancel() }) { Text("Stop") }
         }
         else -> {
             error?.let { Text(it, style = MaterialTheme.typography.bodyMedium, color = Fv.palette.danger) }
             OutlinedButton(onClick = {
                 error = null
+                hashed = 0L
                 job = scope.launch {
                     try {
                         result = withContext(Dispatchers.IO) { source.openStream().use { Hashes.compute(it) { n -> hashed = n } } }

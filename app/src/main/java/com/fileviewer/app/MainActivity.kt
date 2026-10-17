@@ -8,6 +8,13 @@ import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
+import androidx.lifecycle.lifecycleScope
+import androidx.compose.runtime.rememberCoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.runInterruptible
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
@@ -28,12 +35,12 @@ import java.io.File
 
 class MainActivity : ComponentActivity() {
     private val state: AppState by viewModels()
+    private var incoming: Job? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
         if (!state.handledLaunchIntent) {
-            state.handledLaunchIntent = true
             handle(intent)
         }
         setContent { FileViewerTheme { AppRoot(state) } }
@@ -46,14 +53,20 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun handle(intent: Intent) {
-        val sources = runCatching { IntentSources.from(intent, contentResolver) }.getOrDefault(emptyList())
-        state.openExternal(sources)
+        incoming?.cancel()
+        state.handledLaunchIntent = false
+        incoming = lifecycleScope.launch {
+            val sources = runInterruptible(Dispatchers.IO) { runCatching { IntentSources.from(intent, contentResolver) }.getOrDefault(emptyList()) }
+            state.openExternal(sources)
+            state.handledLaunchIntent = true
+        }
     }
 }
 
 @Composable
 private fun AppRoot(state: AppState) {
     val context = LocalContext.current
+    val scope = rememberCoroutineScope()
     val recents = remember { RecentsStore(context) }
     val saveable = rememberSaveableStateHolder()
     BackHandler(enabled = state.stack.size > 1) { state.back() }
@@ -73,9 +86,11 @@ private fun AppRoot(state: AppState) {
                     onFolder = { state.push(Screen.Folder(it.path)) },
                     onOpenPath = ::openFile,
                     onOpenUri = { uri, persisted ->
-                        val source = IntentSources.source(uri, null, context.contentResolver)
-                        if (persisted) recents.add(isUri = true, value = uri.toString(), name = source.name)
-                        state.push(Screen.Viewer(source))
+                        scope.launch {
+                            val source = withContext(Dispatchers.IO) { IntentSources.source(uri, null, context.contentResolver) }
+                            if (persisted) recents.add(isUri = true, value = uri.toString(), name = source.name)
+                            state.push(Screen.Viewer(source))
+                        }
                     },
                 )
                 is Screen.Folder -> FolderScreen(

@@ -16,6 +16,9 @@ import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
+import com.fileviewer.app.source.LocalFileSource
+import java.io.File
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
@@ -25,7 +28,7 @@ import com.fileviewer.app.source.FileSource
 import com.fileviewer.app.ui.components.Loading
 import com.fileviewer.app.ui.theme.Fv
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
+import kotlinx.coroutines.runInterruptible
 
 /**
  * Top bar, viewer switcher, gap note, and the selected viewer. Detection runs here once per file.
@@ -33,13 +36,14 @@ import kotlinx.coroutines.withContext
  */
 @Composable
 fun ViewerScreen(initial: FileSource, onBack: () -> Unit, onOpen: (FileSource) -> Unit) {
-    var source by remember(initial) { mutableStateOf(initial) }
+    var imagePath by rememberSaveable(initial.key) { mutableStateOf((initial as? LocalFileSource)?.file?.path) }
+    val source = remember(initial, imagePath) { imagePath?.let { LocalFileSource(File(it)) } ?: initial }
     val kind by produceState<FileKind?>(null, source) {
-        value = withContext(Dispatchers.IO) { FileTypeDetector.detect(source) }
+        value = runInterruptible(Dispatchers.IO) { FileTypeDetector.detect(source) }
     }
     // The image pager keeps its own state; paging must not rebuild it.
-    var pagerAnchor by remember(initial) { mutableStateOf(initial) }
-    var selected by remember(initial) { mutableStateOf<ViewerId?>(null) }
+    var pagerAnchor by remember(initial) { mutableStateOf(source) }
+    var selected by rememberSaveable(initial.key) { mutableStateOf<ViewerId?>(null) }
 
     Column(Modifier.fillMaxSize().statusBarsPadding()) {
         ViewerTopBar(source, kind, onBack)
@@ -64,7 +68,7 @@ fun ViewerScreen(initial: FileSource, onBack: () -> Unit, onOpen: (FileSource) -
                     kind = k,
                     onOpen = onOpen,
                     onSwitch = { selected = it },
-                    onCurrentChange = { source = it },
+                    onCurrentChange = { imagePath = (it as? LocalFileSource)?.file?.path },
                 )
             }
         }

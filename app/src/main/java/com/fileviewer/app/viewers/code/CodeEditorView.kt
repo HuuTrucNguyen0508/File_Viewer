@@ -4,6 +4,11 @@ import android.content.Context
 import android.graphics.Typeface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Stable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.mutableStateOf
+import io.github.rosemoe.sora.event.PublishSearchResultEvent
+import io.github.rosemoe.sora.event.SelectionChangeEvent
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.res.ResourcesCompat
@@ -19,22 +24,27 @@ import io.github.rosemoe.sora.widget.EditorSearcher
 @Stable
 class EditorController {
     internal var editor: CodeEditor? = null
+    data class Matches(val count: Int = 0, val current: Int = -1)
+    var matches by mutableStateOf(Matches())
+        private set
+
+    internal fun refreshMatches() {
+        val searcher = editor?.searcher?.takeIf { it.hasQuery() }
+        matches = Matches(searcher?.matchedPositionCount ?: 0, searcher?.currentMatchedPositionIndex ?: -1)
+    }
 
     val lineCount: Int get() = editor?.lineCount ?: 0
 
-    /** Highlights matches of [query]; returns the number found. */
-    fun search(query: String, ignoreCase: Boolean = true): Int {
-        val e = editor ?: return 0
-        if (query.isEmpty()) { e.searcher.stopSearch(); return 0 }
+    fun search(query: String, ignoreCase: Boolean = true) {
+        val e = editor ?: return
+        if (query.isEmpty()) { stopSearch(); return }
+        matches = Matches()
         e.searcher.search(query, EditorSearcher.SearchOptions(EditorSearcher.SearchOptions.TYPE_NORMAL, ignoreCase))
-        return e.searcher.matchedPositionCount
     }
 
-    fun matchCount(): Int = editor?.searcher?.takeIf { it.hasQuery() }?.matchedPositionCount ?: 0
-    fun currentMatch(): Int = editor?.searcher?.takeIf { it.hasQuery() }?.currentMatchedPositionIndex ?: -1
     fun next() { editor?.searcher?.takeIf { it.hasQuery() }?.gotoNext() }
     fun previous() { editor?.searcher?.takeIf { it.hasQuery() }?.gotoPrevious() }
-    fun stopSearch() { editor?.searcher?.stopSearch() }
+    fun stopSearch() { editor?.searcher?.stopSearch(); matches = Matches() }
 
     /** Moves to 1-based [line], clamped to the document. */
     fun goToLine(line: Int) {
@@ -82,6 +92,8 @@ fun CodeEditorView(
                 TextMate.applyTheme(dark)
                 colorScheme = TextMateColorScheme.create(ThemeRegistry.getInstance())
                 controller.editor = this
+                subscribeEvent(PublishSearchResultEvent::class.java) { _, _ -> controller.refreshMatches() }
+                subscribeEvent(SelectionChangeEvent::class.java) { _, _ -> controller.refreshMatches() }
             }
         },
         update = { editor ->

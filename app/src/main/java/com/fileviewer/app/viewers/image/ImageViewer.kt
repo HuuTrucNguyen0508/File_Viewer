@@ -51,7 +51,7 @@ fun ImageViewer(source: FileSource, onCurrentChange: (FileSource) -> Unit, onSwi
     val pager = rememberPagerState(initialPage = start) { files.size }
     LaunchedEffect(pager.settledPage) {
         val file = files.getOrNull(pager.settledPage)
-        if (file != null && file != local.file) onCurrentChange(LocalFileSource(file))
+        if (file != null) onCurrentChange(LocalFileSource(file))
     }
     HorizontalPager(pager, Modifier.fillMaxSize(), beyondViewportPageCount = 1, key = { files[it].path }) { page ->
         ZoomableImage(files[page], files[page].name, onSwitch)

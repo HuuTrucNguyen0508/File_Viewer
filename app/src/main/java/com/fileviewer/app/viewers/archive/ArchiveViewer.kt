@@ -45,7 +45,7 @@ import com.fileviewer.app.ui.theme.Fv
 import com.fileviewer.app.viewer.ViewerId
 import com.fileviewer.app.viewer.WithSeekable
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
+import kotlinx.coroutines.runInterruptible
 
 /** Browse an archive as folders; tapping a file opens it in its own viewer. */
 @Composable
@@ -60,7 +60,7 @@ fun ArchiveViewer(source: FileSource, format: ArchiveFormat, onOpen: (FileSource
 @Composable
 private fun Listing(source: FileSource, format: ArchiveFormat, seekable: SeekableSource?, onOpen: (FileSource) -> Unit, onSwitch: (ViewerId) -> Unit) {
     val listing by produceState<Result<ArchiveListing>?>(null, source, seekable) {
-        value = withContext(Dispatchers.IO) { runCatching { ArchiveAccess.list(format, source, seekable) } }
+        value = runInterruptible(Dispatchers.IO) { runCatching { ArchiveAccess.list(format, source, seekable) } }
     }
     val result = listing ?: return Loading()
     result.onFailure {

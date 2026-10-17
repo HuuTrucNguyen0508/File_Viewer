@@ -17,6 +17,11 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.mutableLongStateOf
+import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -68,13 +73,14 @@ private fun Player(source: FileSource, uri: Uri, kind: FileKind.Media, onSwitch:
     val context = LocalContext.current
     var error by remember(uri) { mutableStateOf<String?>(null) }
     var meta by remember(uri) { mutableStateOf(MediaMetadata.EMPTY) }
-    val player = remember(uri) {
-        ExoPlayer.Builder(context).build().apply {
-            setMediaItem(MediaItem.fromUri(uri))
-            prepare()
+    var position by rememberSaveable(source.key) { mutableLongStateOf(0L) }
+    val player = remember(uri) { ExoPlayer.Builder(context).build() }
+    val lifecycle = LocalLifecycleOwner.current.lifecycle
+    DisposableEffect(player, lifecycle) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_PAUSE) { position = player.currentPosition; player.pause() }
         }
-    }
-    DisposableEffect(player) {
+        lifecycle.addObserver(observer)
         val listener = object : Player.Listener {
             override fun onPlayerError(e: PlaybackException) {
                 error = "${e.errorCodeName}: ${e.cause?.message ?: e.message}"
@@ -82,32 +88,27 @@ private fun Player(source: FileSource, uri: Uri, kind: FileKind.Media, onSwitch:
             override fun onMediaMetadataChanged(m: MediaMetadata) { meta = m }
         }
         player.addListener(listener)
-        onDispose { player.removeListener(listener); player.release() }
+        player.setMediaItem(MediaItem.fromUri(uri))
+        player.seekTo(position)
+        player.prepare()
+        onDispose { lifecycle.removeObserver(observer); player.removeListener(listener); player.release() }
     }
     val err = error
     if (err != null) {
         PlaybackError(source, err, onSwitch)
         return
     }
+    if (!kind.format.video) {
+        AudioPlayer(source.name, meta, player)
+        return
+    }
     Column(Modifier.fillMaxSize()) {
-        if (!kind.format.video) {
-            val title = meta.title?.toString() ?: source.name
-            val byline = listOfNotNull(meta.artist?.toString(), meta.albumTitle?.toString()).joinToString(", ")
-            Text(title, style = MaterialTheme.typography.titleLarge, modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 12.dp))
-            if (byline.isNotEmpty()) {
-                Text(byline, style = MaterialTheme.typography.bodyMedium, color = Fv.palette.muted, modifier = Modifier.padding(horizontal = 16.dp))
-            }
-        }
         AndroidView(
             modifier = Modifier.fillMaxWidth().weight(1f),
             factory = { ctx ->
                 PlayerView(ctx).apply {
                     this.player = player
                     setShowBuffering(PlayerView.SHOW_BUFFERING_WHEN_PLAYING)
-                    if (!kind.format.video) {
-                        controllerShowTimeoutMs = 0
-                        controllerHideOnTouch = false
-                    }
                 }
             },
             update = { it.player = player },

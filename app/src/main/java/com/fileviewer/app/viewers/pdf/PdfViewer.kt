@@ -22,13 +22,13 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -48,10 +48,10 @@ import com.fileviewer.app.ui.theme.Fv
 import com.fileviewer.app.viewer.ViewerId
 import com.fileviewer.app.viewer.WithSeekable
 import com.fileviewer.app.viewers.code.NumberDialog
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
-
+import kotlinx.coroutines.awaitCancellation
+import com.fileviewer.app.source.acquireResource
+import kotlin.coroutines.cancellation.CancellationException
 private const val MAX_ZOOM = 4f
 
 @Composable
@@ -62,12 +62,20 @@ fun PdfViewer(source: FileSource, onSwitch: (ViewerId) -> Unit) {
 @Composable
 private fun PdfBody(src: SeekableSource, onSwitch: (ViewerId) -> Unit) {
     val doc by produceState<Result<PdfDocument>?>(null, src) {
-        value = withContext(Dispatchers.IO) {
-            runCatching { PdfDocument.open(src.openFileDescriptor() ?: error("No file descriptor")) }
+        var opened: PdfDocument? = null
+        try {
+            opened = acquireResource { PdfDocument.open(src.openFileDescriptor() ?: error("No file descriptor")) }
+            value = Result.success(opened)
+            awaitCancellation()
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            value = Result.failure(e)
+        } finally {
+            opened?.close()
         }
     }
     val opened = doc?.getOrNull()
-    DisposableEffect(opened) { onDispose { opened?.close() } }
     when {
         doc == null -> Loading()
         opened == null -> {
@@ -85,7 +93,7 @@ private fun PdfBody(src: SeekableSource, onSwitch: (ViewerId) -> Unit) {
 
 @Composable
 private fun Pages(doc: PdfDocument) {
-    var zoom by remember { mutableFloatStateOf(1f) }
+    var zoom by rememberSaveable { mutableFloatStateOf(1f) }
     var gesture by remember { mutableFloatStateOf(1f) }
     var askPage by remember { mutableStateOf(false) }
     val list = rememberLazyListState()
@@ -95,7 +103,12 @@ private fun Pages(doc: PdfDocument) {
     BoxWithConstraints(
         Modifier.fillMaxSize().background(Fv.palette.paper).pinchToZoom(
             onScale = { f, _ -> gesture = (gesture * f).coerceIn(1f / zoom, MAX_ZOOM / zoom) },
-            onEnd = { zoom = (zoom * gesture).coerceIn(1f, MAX_ZOOM); gesture = 1f },
+            onEnd = {
+                val factor = gesture
+                list.requestScrollToItem(list.firstVisibleItemIndex, (list.firstVisibleItemScrollOffset * factor).toInt())
+                zoom = (zoom * factor).coerceIn(1f, MAX_ZOOM)
+                gesture = 1f
+            },
         ),
     ) {
         val pageWidth = maxWidth * zoom
@@ -144,8 +157,10 @@ private fun Pages(doc: PdfDocument) {
 private fun Page(doc: PdfDocument, index: Int, widthPx: Int) {
     // Keep showing the previous rendering (scaled) while a sharper one renders after a zoom.
     var shown by remember { mutableStateOf<Bitmap?>(null) }
-    val fresh by produceState(doc.cached(index, widthPx), index, widthPx) {
-        if (value == null) value = runCatching { doc.render(index, widthPx) }.getOrNull()
+    val fresh by produceState<Bitmap?>(null, doc, index, widthPx) {
+        value = try {
+            doc.cached(index, widthPx) ?: doc.render(index, widthPx)
+        } catch (e: CancellationException) { throw e } catch (_: Exception) { null }
     }
     fresh?.let { shown = it }
     Box(Modifier.fillMaxWidth().aspectRatio(doc.aspects[index]).background(androidx.compose.ui.graphics.Color.White)) {

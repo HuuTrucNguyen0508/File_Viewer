@@ -11,13 +11,19 @@ import kotlin.coroutines.coroutineContext
  * Returns a seekable view of this source, copying it into [cache] first when the source is
  * stream-only. The copy is cancellable, reports bytes copied to [progress], is bounded by
  * [Limits.MAX_MATERIALIZE_BYTES], and leaves no partial file behind on cancel or failure.
+ * With [requireDescriptor], a seekable view that can't hand out a descriptor from byte 0
+ * (an AssetFileDescriptor window) is copied too; PdfRenderer and MediaMetadataRetriever need one.
  * Caller closes the result.
  */
 suspend fun FileSource.materialize(
     cache: MaterializeCache = MaterializeCache.default,
+    requireDescriptor: Boolean = false,
     progress: (Long) -> Unit = {},
 ): SeekableSource = withContext(Dispatchers.IO) {
-    seekableOrNull()?.let { return@withContext it }
+    seekableOrNull()?.let { s ->
+        if (!requireDescriptor || s.file != null || s.openFileDescriptor()?.also { it.close() } != null) return@withContext s
+        s.close()
+    }
     cache.existing(key)?.let { return@withContext FileSeekable(it) }
 
     val dir = cache.dirFor(key)

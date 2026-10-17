@@ -1,0 +1,25 @@
+/* Shared offline stylesheet for rendered HTML fragments (phase-2 Markdown, documents, EPUB). */
+@font-face { font-family: "Plex"; src: url("fonts/plex.ttf"); font-weight: 100 700; }
+@font-face { font-family: "JBMono"; src: url("fonts/mono.ttf"); font-weight: 100 800; }
+:root {
+  --paper: #F8F9F6; --ink: #18201E; --muted: #59645F; --rule: #D6DBD3; --accent: #2B45C4; --code-bg: #EFF1EC;
+}
+html.dark {
+  --paper: #192120; --ink: #E1E6E2; --muted: #8D9893; --rule: #283130; --accent: #97A8FF; --code-bg: #111615;
+}
+html { background: var(--paper); color: var(--ink); -webkit-text-size-adjust: 100%; }
+body { font: 16px/1.55 "Plex", sans-serif; margin: 0; padding: 20px 18px 48px; max-width: 72ch; overflow-wrap: anywhere; }
+h1, h2, h3, h4 { font-weight: 600; line-height: 1.2; margin: 1.6em 0 0.5em; }
+h1 { font-size: 1.6em; } h2 { font-size: 1.35em; } h3 { font-size: 1.15em; } h4 { font-size: 1em; }
+p, ul, ol, blockquote, pre, table { margin: 0 0 1em; }
+a { color: var(--accent); }
+img, svg, video { max-width: 100%; height: auto; }
+code, pre, kbd { font-family: "JBMono", monospace; font-size: 0.86em; }
+code { background: var(--code-bg); padding: 0.1em 0.3em; border-radius: 4px; }
+pre { background: var(--code-bg); padding: 12px 14px; border-radius: 8px; overflow-x: auto; }
+pre code { background: none; padding: 0; }
+blockquote { border-left: 3px solid var(--rule); padding-left: 12px; color: var(--muted); margin-left: 0; }
+table { border-collapse: collapse; display: block; overflow-x: auto; }
+th, td { border: 1px solid var(--rule); padding: 6px 10px; text-align: left; vertical-align: top; }
+th { font-weight: 600; }
+hr { border: 0; border-top: 1px solid var(--rule); margin: 2em 0; }

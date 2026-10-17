@@ -32,7 +32,10 @@ class ViewerRegistryTest {
         assertEquals(listOf(ViewerId.Pdf, ViewerId.Text, ViewerId.Hex, ViewerId.Info), viewers(FileKind.Pdf))
         assertEquals(listOf(ViewerId.Image, ViewerId.Code, ViewerId.Hex, ViewerId.Info), viewers(FileKind.Image(ImageFormat.SVG)))
         assertEquals(listOf(ViewerId.Hex, ViewerId.Text, ViewerId.Info), viewers(FileKind.Binary()))
-        assertEquals(ViewerId.Archive, viewers(FileKind.Document(DocumentFormat.EPUB)).first())
+        assertEquals(listOf(ViewerId.Preview, ViewerId.Archive, ViewerId.Text, ViewerId.Hex, ViewerId.Info), viewers(FileKind.Document(DocumentFormat.EPUB)))
+        assertEquals(listOf(ViewerId.Preview, ViewerId.Text, ViewerId.Hex, ViewerId.Info), viewers(FileKind.Document(DocumentFormat.RTF)))
+        assertEquals(listOf(ViewerId.Preview, ViewerId.Text, ViewerId.Hex, ViewerId.Info), viewers(FileKind.Document(DocumentFormat.DOC)))
+        assertEquals(ViewerId.Info, viewers(FileKind.Document(DocumentFormat.DOCX), depth = 4).first())
     }
 
     @Test fun gapsFallBackToInfoWithANote() {

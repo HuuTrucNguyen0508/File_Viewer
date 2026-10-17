@@ -10,6 +10,9 @@ import com.fileviewer.app.viewers.hex.HexViewer
 import com.fileviewer.app.viewers.image.ImageViewer
 import com.fileviewer.app.viewers.info.InfoViewer
 import com.fileviewer.app.viewers.media.MediaViewer
+import com.fileviewer.app.viewers.misc.apk.ApkViewer
+import com.fileviewer.app.viewers.misc.cert.CertViewer
+import com.fileviewer.app.viewers.misc.font.FontViewer
 import com.fileviewer.app.viewers.pdf.PdfViewer
 
 /** Shows [id] for [source]. The single place a [ViewerId] meets its composable. */
@@ -31,6 +34,9 @@ fun ViewerHost(
         ViewerId.Archive -> ArchiveViewer(source, archiveFormat(kind), onOpen, onSwitch)
         ViewerId.Hex -> HexViewer(source)
         ViewerId.Info -> InfoViewer(source, kind)
+        ViewerId.Font -> FontViewer(source, kind as FileKind.Font, onSwitch)
+        ViewerId.Apk -> ApkViewer(source, onSwitch)
+        ViewerId.Cert -> CertViewer(source, onSwitch)
     }
 }
 

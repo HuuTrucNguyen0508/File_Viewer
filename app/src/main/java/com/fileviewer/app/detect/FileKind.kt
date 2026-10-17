@@ -48,6 +48,12 @@ sealed interface FileKind {
         override val label get() = format.display
     }
 
+    /** X.509 certificates, certificate chains (PEM, DER, PKCS#7) and key files. */
+    data object Certificate : FileKind {
+        override val family get() = Family.Data
+        override val label get() = "Certificate or key"
+    }
+
     data class Font(val format: FontFormat) : FileKind {
         override val family get() = Family.Font
         override val label get() = "${format.display} font"

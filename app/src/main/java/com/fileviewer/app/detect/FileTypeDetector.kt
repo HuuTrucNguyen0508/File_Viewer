@@ -39,6 +39,7 @@ object FileTypeDetector {
 
         val sniff = TextSniffer.sniff(header, length, truncated)
         if (byName != null) {
+            if (byName == FileKind.Certificate && sniff.isText && String(header, 0, length, Charsets.ISO_8859_1).contains(PEM_BEGIN)) return byName
             if (byName.isTextual) return if (sniff.isText) withCharset(byName, sniff) else FileKind.Binary()
             // A binary-type name with no matching signature but clearly textual content is text.
             if (!(sniff.isText && length > 0)) return byName
@@ -88,9 +89,16 @@ object FileTypeDetector {
                 FileKind.Data(DataFormat.JSON)
             text.startsWith("diff --git") || text.startsWith("--- a/") || text.startsWith("Index: ") ->
                 CodeLanguages.text("diff")
-            text.startsWith("-----BEGIN ") -> FileKind.Text(null, "PEM text")
+            text.startsWith(PEM_BEGIN) -> if (isKeyOrCertificateBlock(text)) FileKind.Certificate else FileKind.Text(null, "PEM text")
             else -> fallback ?: FileKind.Text(null, "Plain text")
         }
+    }
+
+    private const val PEM_BEGIN = "-----BEGIN "
+
+    private fun isKeyOrCertificateBlock(text: String): Boolean {
+        val label = text.removePrefix(PEM_BEGIN).substringBefore("-----")
+        return "CERTIFICATE" in label || "KEY" in label || label == "PKCS7"
     }
 
     private fun shebang(line: String): FileKind? {

@@ -5,6 +5,7 @@ import com.fileviewer.app.detect.ArchiveFormat
 import com.fileviewer.app.detect.DataFormat
 import com.fileviewer.app.detect.DocumentFormat
 import com.fileviewer.app.detect.FileKind
+import com.fileviewer.app.detect.FontFormat
 import com.fileviewer.app.detect.ImageFormat
 import com.fileviewer.app.detect.sourceLanguage
 import com.fileviewer.app.source.Limits
@@ -12,6 +13,7 @@ import com.fileviewer.app.source.Limits
 /** Every viewer the switcher can offer. Labels are what the chips say. */
 enum class ViewerId(val label: String) {
     Code("Code"), Text("Text"), Image("Image"), Pdf("Pages"), Media("Play"), Archive("Contents"), Hex("Hex"), Info("Info"),
+    Font("Specimen"), Apk("App"), Cert("Certificate"),
 }
 
 /**
@@ -34,6 +36,7 @@ object ViewerRegistry {
             is FileKind.Archive -> when {
                 kind.format == ArchiveFormat.RAR -> listOf(ViewerId.Info)
                 archiveDepth >= Limits.MAX_ARCHIVE_DEPTH -> listOf(ViewerId.Info)
+                kind.subtype == "APK" -> listOf(ViewerId.Apk, ViewerId.Archive)
                 else -> listOf(ViewerId.Archive)
             }
             is FileKind.Document -> when {
@@ -41,7 +44,8 @@ object ViewerRegistry {
                 kind.format == DocumentFormat.RTF -> listOf(ViewerId.Text)
                 else -> listOf(ViewerId.Info)
             }
-            is FileKind.Font -> listOf(ViewerId.Info)
+            is FileKind.Font -> if (kind.format == FontFormat.WOFF2) listOf(ViewerId.Info) else listOf(ViewerId.Font)
+            FileKind.Certificate -> listOf(ViewerId.Cert)
             is FileKind.Binary -> listOf(ViewerId.Hex)
         }
         val textual = kind.sourceLanguage != null || ViewerId.Text in primary
@@ -63,7 +67,8 @@ object ViewerRegistry {
         kind is FileKind.Document && !kind.format.zipBased && kind.format != DocumentFormat.RTF ->
             "${kind.format.display} files can't be previewed yet."
         kind is FileKind.Data && kind.format == DataFormat.SQLITE -> "Browsing SQLite tables is planned."
-        kind is FileKind.Font -> "Font preview is planned."
+        kind is FileKind.Font && kind.format == FontFormat.WOFF2 ->
+            "WOFF2 fonts can't be previewed on Android. File info and raw bytes are below."
         else -> null
     }
 

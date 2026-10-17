@@ -16,14 +16,15 @@ Any file can be switched to **Text** (with an encoding picker), **Hex**, and **I
 | Format | Support | Notes |
 |---|---|---|
 | Source code (about 60 languages: Kotlin, Java, Python, JS/TS, C/C++, C#, Go, Rust, Swift, Dart, Ruby, PHP, shell, SQL, Lua, R, Julia, Groovy/Gradle, Zig, GraphQL, Protobuf, and more) | Full | Syntax highlighting, light and dark themes, line numbers, find, go to line, word wrap, pinch zoom, copy |
-| Config files (JSON, YAML, TOML, INI, XML, .env, Dockerfile, Makefile, dotfiles) | Full | Highlighted by extension or file name |
+| Config files (YAML, TOML, INI, XML, .env, Dockerfile, Makefile, dotfiles) | Full | Highlighted by extension or file name |
 | Plain text, logs, files with no extension | Full | Content sniffing detects text; BOMs and UTF-16 without a BOM are recognized |
 | Text over 5 MB | Full | Shown without highlighting |
 | Text over 20 MB | Preview | Paged plain-text mode: scrolls through any size, no find or highlighting |
 | Languages without a bundled grammar (Scala, Haskell, Elixir, Nix, Terraform...) | Full | Plain text; pick a similar grammar from the syntax menu |
-| Markdown, HTML | Full (source) | Rendered view **planned** |
-| JSON | Full (source) | Collapsible tree **planned** |
-| CSV, TSV | Full (source) | Table view **planned** |
+| Markdown (.md, .markdown, .mdx; README and CHANGELOG with no extension when they read as Markdown) | Full | Rendered with tables, task lists, strikethrough, bare links and fenced code; front matter shown as its own block. HTML written inside the file appears as text, links are shown but don't open, and images load from the file's own folder (or the same archive). Code shows the highlighted source |
+| HTML, XHTML | Full | Shown in a sandbox: scripts off, nothing loads from the internet. Styles and images load only from the page's folder or below it, so pages that need scripts or remote files may look incomplete. Code shows the highlighted source |
+| JSON, GeoJSON, JSON Lines (.jsonl, .ndjson) | Full | Collapsible tree with typed value colors and child counts; hold a row to copy its path or value. Invalid JSON shows the line and column of the first problem above the source. Stops drawing after 200,000 values, nesting past 200 levels is an error, files over 32 MB show the source instead |
+| CSV, TSV, PSV | Full | Table with a fixed header row and row numbers, scrolling both ways; the delimiter (comma, tab, semicolon, pipe) is guessed and can be changed; quoted fields and line breaks inside cells work; first row as header can be switched off. Tap a row to read it in full. Stops at 50,000 rows, 200 columns and 2,000 characters per cell, with a note. Text shows the source |
 | RTF | Preview | Paragraphs, bold/italic/underline, accented and Unicode characters, simple tables. Fonts, colors, pictures, headers and footnotes are skipped. Raw source under Text |
 
 ## Images
@@ -78,7 +79,7 @@ Playback uses ExoPlayer and the phone's own decoders. The container is always de
 
 | Format | Support | Notes |
 |---|---|---|
-| SQLite databases | Fallback | Table browser **planned** |
+| SQLite databases (.db, .sqlite, .sqlite3 and others, found by signature) | Full | Tables and views with row counts, the CREATE statements with highlighting, and rows 100 at a time. Opened read-only; databases in WAL mode, or with a `-wal` or `-journal` file beside them, are read from a private copy so the original is never touched, though changes still sitting in a `-journal` are not applied. Encrypted databases (SQLCipher) can't be opened and fall back to Info and Hex. BLOB cells show their size |
 | Fonts (TTF, OTF, TTC first face) | Full | Name in its own face, sizes from 12 to 56, a field to try your own text (edits nothing on disk), glyph grid with code point and Unicode name |
 | WOFF | Full if the device loads it | Android may refuse WOFF; the viewer then says so and offers Info and Hex |
 | WOFF2 | Fallback | Android can't load it; Info and Hex, with a note |

@@ -11,4 +11,4 @@
 | IBM Plex Sans | google/fonts `ofl/ibmplexsans` | SIL Open Font License 1.1 |
 | JetBrains Mono | google/fonts `ofl/jetbrainsmono` | SIL Open Font License 1.1 |
 
-Grammars are fetched by `tools/fetch_grammars.py`. Library dependencies (Sora Editor, Coil, telephoto, Media3, Apache Commons Compress, XZ for Java) are pulled by Gradle under their own licenses (LGPL-2.1 for Sora Editor; Apache-2.0 for the rest; XZ for Java is 0BSD).
+Grammars are fetched by `tools/fetch_grammars.py`. Library dependencies (Sora Editor, Coil, telephoto, Media3, Apache Commons Compress, XZ for Java, commonmark-java) are pulled by Gradle under their own licenses (LGPL-2.1 for Sora Editor; Apache-2.0 for most of the rest; XZ for Java is 0BSD; commonmark-java and its extensions are BSD-2-Clause, and the autolink extension pulls org.nibor.autolink, MIT).

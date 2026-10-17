@@ -1,5 +1,6 @@
 package com.fileviewer.app
 
+import android.app.Activity
 import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -56,6 +57,7 @@ private fun AppRoot(state: AppState) {
     val recents = remember { RecentsStore(context) }
     val saveable = rememberSaveableStateHolder()
     BackHandler(enabled = state.stack.size > 1) { state.back() }
+    val goBack = { if (!state.back()) (context as? Activity)?.finish() }
 
     fun openFile(file: File) {
         recents.add(isUri = false, value = file.absolutePath, name = file.name)
@@ -79,12 +81,12 @@ private fun AppRoot(state: AppState) {
                 is Screen.Folder -> FolderScreen(
                     dir = File(screen.path),
                     state = state,
-                    onBack = { state.back() },
+                    onBack = goBack,
                     onFolder = { state.push(Screen.Folder(it.path)) },
                     onOpen = ::openFile,
                 )
-                is Screen.Viewer -> ViewerScreen(screen.source, onBack = { state.back() }, onOpen = { state.push(Screen.Viewer(it)) })
-                is Screen.Shared -> SharedListScreen(screen.sources, onBack = { state.back() }, onOpen = { state.push(Screen.Viewer(it)) })
+                is Screen.Viewer -> ViewerScreen(screen.source, onBack = goBack, onOpen = { state.push(Screen.Viewer(it)) })
+                is Screen.Shared -> SharedListScreen(screen.sources, onBack = goBack, onOpen = { state.push(Screen.Viewer(it)) })
             }
         }
     }

@@ -35,11 +35,13 @@ class AppState : ViewModel() {
         return true
     }
 
-    /** Opened from another app: one file goes straight to its viewer, several to a list. */
+    /**
+     * Opened from another app: one file goes straight to its viewer, several to a list.
+     * There is no Home underneath, so back returns to the app that sent the file.
+     */
     fun openExternal(sources: List<FileSource>) {
         if (sources.isEmpty()) return
         stack.clear()
-        stack.add(Screen.Home)
         stack.add(if (sources.size == 1) Screen.Viewer(sources.single()) else Screen.Shared(sources))
     }
 }

@@ -8,6 +8,39 @@ import java.nio.ByteOrder
 import org.apache.commons.compress.utils.SeekableInMemoryByteChannel
 
 class AuditZipTest {
+    @Test fun sharedLocalExtrasAreCountedPerReference() {
+        val n = 5000
+        val extra = 60000
+        val b = ByteBuffer.allocate(30 + extra + n * 46 + 22).order(ByteOrder.LITTLE_ENDIAN)
+        b.putInt(0x04034b50); b.putShort(28, extra.toShort())
+        b.putShort(30, 0x1234); b.putShort(32, (extra - 4).toShort())
+        b.position(30 + extra)
+        repeat(n) { val at = b.position(); b.putInt(0x02014b50); b.position(at + 46) }
+        b.putInt(0x06054b50).putShort(0).putShort(0).putShort(n.toShort()).putShort(n.toShort())
+            .putInt(n * 46).putInt(30 + extra).putShort(0)
+        assertThrows(LimitExceededException::class.java) { BoundedZip.open(SeekableInMemoryByteChannel(b.array())) }
+    }
+
+    @Test fun unicodeNamesCommentsZip64AndEntryStreamsArePreserved() {
+        val bytes = java.io.ByteArrayOutputStream()
+        org.apache.commons.compress.archivers.zip.ZipArchiveOutputStream(bytes).use { out ->
+            out.setEncoding("CP437")
+            out.setUseLanguageEncodingFlag(false)
+            out.setCreateUnicodeExtraFields(org.apache.commons.compress.archivers.zip.ZipArchiveOutputStream.UnicodeExtraFieldPolicy.ALWAYS)
+            out.setUseZip64(org.apache.commons.compress.archivers.zip.Zip64Mode.Always)
+            val entry = org.apache.commons.compress.archivers.zip.ZipArchiveEntry("café.txt")
+            entry.comment = "café comment"
+            out.putArchiveEntry(entry); out.write("current bytes".toByteArray()); out.closeArchiveEntry()
+        }
+        BoundedZip.open(SeekableInMemoryByteChannel(bytes.toByteArray())).use { zip ->
+            val entry = zip.getEntry("café.txt")
+            org.junit.Assert.assertNotNull(entry)
+            org.junit.Assert.assertEquals("café comment", entry.comment)
+            org.junit.Assert.assertEquals(13L, entry.size)
+            org.junit.Assert.assertEquals("current bytes", zip.getInputStream(entry).bufferedReader().use { it.readText() })
+        }
+    }
+
     private fun directory(n: Int, prefix: Int = 0, zip64: Boolean = false, variable: Int = 0): ByteArray {
         val size = n * (46 + variable)
         val b = ByteBuffer.allocate(prefix + 30 + size + (if (zip64) 76 else 0) + 22).order(ByteOrder.LITTLE_ENDIAN)

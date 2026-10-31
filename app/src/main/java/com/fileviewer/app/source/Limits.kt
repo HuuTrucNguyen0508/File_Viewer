@@ -82,7 +82,8 @@ object Limits {
     const val MAX_ARCHIVE_TREE_NODES = 100_000
 
     const val MAX_ZIP_DIRECTORY_BYTES = 8L shl 20
-    const val MAX_ZIP_UNPARSED_BYTES = 4L shl 20
+    /** Local extra bytes counted once per referencing entry, even for shared headers. */
+    const val MAX_ZIP_LOCAL_EXTRA_BYTES = 4L shl 20
 
     const val MAX_ARCHIVE_ENTRIES = 100_000
 

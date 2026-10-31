@@ -18,19 +18,8 @@ object BoundedZip {
     }
 
     fun preflight(channel: SeekableByteChannel) {
-        try {
-            inspect(channel)
-        } catch (e: LimitExceededException) {
-            throw e
-        } catch (_: IOException) {
-            // Preserve permissive library handling of small malformed layouts. Even if every
-            // byte were a central record, this file cannot hold 100,000 records or 8 MB metadata.
-            if (channel.size() > Limits.MAX_ZIP_UNPARSED_BYTES)
-                throw LimitExceededException("Unrecognized ZIP layout", Limits.MAX_ZIP_UNPARSED_BYTES)
-        } catch (_: IllegalArgumentException) {
-            if (channel.size() > Limits.MAX_ZIP_UNPARSED_BYTES)
-                throw LimitExceededException("Unrecognized ZIP layout", Limits.MAX_ZIP_UNPARSED_BYTES)
-        }
+        // Fail closed: a malformed directory must not bypass accounting for local extras.
+        inspect(channel)
     }
 
     private fun inspect(c: SeekableByteChannel) {
@@ -51,6 +40,7 @@ object BoundedZip {
         val stop = maxOf(0, c.size() - 65557)
         while (eocd >= stop && u32(eocd) != 0x06054b50L) eocd--
         if (eocd < stop) throw IOException("No EOCD")
+        var prefix = 0L
         var at = if (eocd > 20 && u32(eocd - 20) == 0x07064b50L) {
             val zip64 = i64(eocd - 12)
             if (u32(zip64) != 0x06064b50L) throw IOException("Invalid ZIP64 locator")
@@ -58,16 +48,48 @@ object BoundedZip {
         } else {
             val size = u32(eocd + 12)
             val offset = u32(eocd + 16)
-            offset + maxOf(eocd - size - offset, 0)
+            prefix = maxOf(eocd - size - offset, 0)
+            offset + prefix
         }
         var entries = 0
         var bytes = 0L
+        var localExtras = 0L
         while (u32(at) == 0x02014b50L) {
             if (++entries > Limits.MAX_ARCHIVE_ENTRIES)
                 throw LimitExceededException("ZIP entry count", Limits.MAX_ARCHIVE_ENTRIES.toLong())
             val header = read(at, 46)
             val length = 46L + (header.getShort(28).toInt() and 65535) +
                 (header.getShort(30).toInt() and 65535) + (header.getShort(32).toInt() and 65535)
+            val nameLength = header.getShort(28).toInt() and 65535
+            val extraLength = header.getShort(30).toInt() and 65535
+            val size64 = header.getInt(24) == -1
+            val compressed64 = header.getInt(20) == -1
+            var local = (header.getInt(42).toLong() and 0xffffffffL) + prefix
+            if (local == 0xffffffffL) {
+                var extra = at + 46 + nameLength
+                val end = extra + extraLength
+                var found = false
+                while (extra + 4 <= end) {
+                    val field = read(extra, 4)
+                    val id = field.short.toInt() and 65535
+                    val length = field.short.toInt() and 65535
+                    if (extra + 4 + length > end) throw IOException("Invalid ZIP extra")
+                    if (id == 1) {
+                        val offsetAt = extra + 4 + (if (size64) 8 else 0) + (if (compressed64) 8 else 0)
+                        if (offsetAt + 8 > extra + 4 + length) throw IOException("Missing ZIP64 offset")
+                        local = i64(offsetAt) // Library replaces, rather than adds, the prefix for ZIP64 offsets.
+                        found = true
+                        break
+                    }
+                    extra += 4 + length
+                }
+                if (!found) throw IOException("Missing ZIP64 offset")
+            }
+            val localHeader = read(local + 26, 4)
+            localHeader.short // filename length, skipped by the library
+            localExtras += localHeader.short.toInt() and 65535
+            if (localExtras > Limits.MAX_ZIP_LOCAL_EXTRA_BYTES)
+                throw LimitExceededException("ZIP local extra metadata", Limits.MAX_ZIP_LOCAL_EXTRA_BYTES)
             bytes += length
             if (bytes > Limits.MAX_ZIP_DIRECTORY_BYTES)
                 throw LimitExceededException("ZIP central directory", Limits.MAX_ZIP_DIRECTORY_BYTES)

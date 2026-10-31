@@ -38,6 +38,11 @@ object Limits {
     const val MAX_PERMISSIONS = 500
 
     /** Bytes read from a Markdown, HTML, CSV or JSON file; anything past this is cut with a note. */
+    const val MAX_MARKDOWN_COMPLEXITY = 20_000
+    const val MAX_MARKDOWN_LINE_TOKENS = 2_000
+    const val MAX_MARKDOWN_CONTAINERS = 64
+    const val MAX_MARKDOWN_HTML_CHARS = 8_000_000
+
     const val MAX_DATA_TEXT_BYTES = 32L shl 20
 
     /** CSV and SQLite tables: rows kept in memory, columns shown, characters kept per cell. */

@@ -22,6 +22,9 @@ class ContentUriSource private constructor(
     override val key: String = ContentOpeningKey(uri.toString()).key
     override val displayPath: String get() = uri.toString()
 
+    /** Start a new viewer session and query current provider metadata. */
+    override fun newOpening(): ContentUriSource = from(resolver, uri, mimeHint)
+
     override fun openStream(): InputStream =
         resolver.openInputStream(uri) ?: throw FileNotFoundException("No stream for $uri")
 

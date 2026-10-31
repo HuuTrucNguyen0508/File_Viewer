@@ -101,7 +101,9 @@ private fun AppRoot(state: AppState) {
                     onOpen = ::openFile,
                 )
                 is Screen.Viewer -> ViewerScreen(screen.source, onBack = goBack, onOpen = { state.push(Screen.Viewer(it)) })
-                is Screen.Shared -> SharedListScreen(screen.sources, onBack = goBack, onOpen = { state.push(Screen.Viewer(it)) })
+                is Screen.Shared -> SharedListScreen(screen.sources, onBack = goBack, onOpen = { retained ->
+                    scope.launch { state.openShared(retained) }
+                })
             }
         }
     }

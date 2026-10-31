@@ -8,6 +8,28 @@ import org.junit.Rule
 import org.junit.rules.TemporaryFolder
 
 class AuditCacheTest {
+    @Test fun retainedSelectionCreatesFreshOpeningAndReusesItWithinSession() = runBlocking {
+        val cache = MaterializeCache(tmp.newFolder())
+        var provider = "old"
+        val retained = object : FileSource by BytesSource("document", byteArrayOf()) {
+            override fun newOpening(): FileSource = object : FileSource by BytesSource("document", provider.toByteArray()) {
+                override val key = ContentOpeningKey("content://provider/1").key
+            }
+        }
+        val state = com.fileviewer.app.AppState()
+        state.openExternal(listOf(retained, retained))
+        state.openShared(retained)
+        val first = (state.current as com.fileviewer.app.Screen.Viewer).source
+        assertEquals("old", first.materialize(cache).use { it.file!!.readText() })
+        provider = "new"
+        state.back()
+        state.openShared(retained)
+        val second = (state.current as com.fileviewer.app.Screen.Viewer).source
+        assertNotEquals(first.key, second.key)
+        assertEquals("new", second.materialize(cache).use { it.file!!.readText() })
+        assertEquals("old", first.materialize(cache).use { it.file!!.readText() })
+        assertEquals(second.materialize(cache).use { it.file }, second.materialize(cache).use { it.file })
+    }
     @get:Rule val tmp = TemporaryFolder()
     @Test fun reopenCopiesFreshBytesAndOneOpeningReusesItsCopy() = runBlocking {
         val cache = MaterializeCache(tmp.newFolder())

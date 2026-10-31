@@ -26,6 +26,9 @@ interface FileSource {
     /** 0 for a real file; 1 for an entry of an archive; 2 for an entry of an archive inside an archive... */
     val archiveDepth: Int get() = 0
 
+    /** Refresh retained browser selections; keep the returned source for the whole viewer session. */
+    fun newOpening(): FileSource = this
+
     /** A fresh stream from byte 0. Caller closes. */
     fun openStream(): InputStream
 

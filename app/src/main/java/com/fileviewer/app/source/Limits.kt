@@ -11,6 +11,7 @@ object Limits {
     const val HEADER_BYTES = 4096
 
     /** Largest `name` table read from a font. */
+    const val MAX_FONT_NAME_CHARS = 4096
     const val MAX_NAME_TABLE_BYTES = 1 shl 20
     const val MAX_FONT_TABLES = 256
     const val MAX_FONT_FACES = 1024

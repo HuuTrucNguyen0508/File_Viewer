@@ -90,3 +90,4 @@ Playback uses ExoPlayer and the phone's own decoders. The container is always de
 | Unknown binary | Fallback | Hex view handles files of any size without loading them into memory |
 
 Archive folder trees hide entries whose paths exceed 4,096 characters or 128 components, or would exceed 100,000 implied nodes. The archive shows the hidden-entry count; Hex and Info remain available.
+Font metadata selects preferred name records before decoding and displays at most 4,096 characters per name, across at most eight displayed names.

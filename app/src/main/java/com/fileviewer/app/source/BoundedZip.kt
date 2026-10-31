@@ -37,15 +37,18 @@ object BoundedZip {
         // The library merges each header's fields quadratically, so bytes alone do not bound its work.
         // Central fields are retained with repeats. Local repeats collapse, and must be allowed,
         // because zipalign's zero padding parses as thousands of id-0 fields.
+        var retainedFields = 0
         fun checkExtraFields(start: Long, length: Int, countRepeats: Boolean) {
             var field = start
             var fields = 0
             val ids = HashSet<Short>()
             while (field + 4 <= start + length) {
                 val header = read(field, 4)
-                if (ids.add(header.short) || countRepeats) fields++
+                if (ids.add(header.short) || countRepeats) { fields++; retainedFields++ }
                 if (fields > Limits.MAX_ZIP_EXTRA_FIELDS)
                     throw LimitExceededException("ZIP header has more than ${Limits.MAX_ZIP_EXTRA_FIELDS} extra fields")
+                if (retainedFields > Limits.MAX_ZIP_TOTAL_EXTRA_FIELDS)
+                    throw LimitExceededException("ZIP has more than ${Limits.MAX_ZIP_TOTAL_EXTRA_FIELDS} extra fields")
                 field += 4 + (header.short.toInt() and 65535)
             }
         }

@@ -54,6 +54,15 @@ class AuditZipTest {
         }
     }
 
+    @Test fun extraFieldsAreBoundedAcrossTheArchive() {
+        val fields = Limits.MAX_ZIP_EXTRA_FIELDS
+        val entries = Limits.MAX_ZIP_TOTAL_EXTRA_FIELDS / fields
+        BoundedZip.preflight(SeekableInMemoryByteChannel(extraFields(entries, fields, central = true)))
+        assertThrows(LimitExceededException::class.java) {
+            BoundedZip.preflight(SeekableInMemoryByteChannel(extraFields(entries + 1, fields, central = true)))
+        }
+    }
+
     @Test fun zeroPaddingFromZipalignIsNotCountedAsManyFields() {
         BoundedZip.preflight(SeekableInMemoryByteChannel(extraFields(60, 4096, central = false, distinctIds = 0)))
     }

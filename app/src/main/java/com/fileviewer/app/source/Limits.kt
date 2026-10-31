@@ -92,6 +92,9 @@ object Limits {
     /** Extra fields in one ZIP header, ignoring local repeats. Real archives carry a handful; merging them is quadratic. */
     const val MAX_ZIP_EXTRA_FIELDS = 64
 
+    /** Extra fields across one ZIP. Three per entry at the entry limit; ordinary writers use one or two. */
+    const val MAX_ZIP_TOTAL_EXTRA_FIELDS = 300_000
+
     const val MAX_ZIP_DIRECTORY_BYTES = 8L shl 20
 
     const val MAX_ARCHIVE_ENTRIES = 100_000

@@ -19,8 +19,11 @@ class ContentUriSource private constructor(
     override val mimeHint: String?,
     override val lastModified: Long?,
 ) : FileSource {
-    override val key: String get() = "uri:$uri"
+    override val key: String = ContentOpeningKey(uri.toString()).key
     override val displayPath: String get() = uri.toString()
+
+    /** Start a new viewer session and query current provider metadata. */
+    override fun newOpening(): ContentUriSource = from(resolver, uri, mimeHint)
 
     override fun openStream(): InputStream =
         resolver.openInputStream(uri) ?: throw FileNotFoundException("No stream for $uri")
@@ -54,8 +57,8 @@ class ContentUriSource private constructor(
         return FdSeekable(pfd, start, length)
     }
 
-    override fun equals(other: Any?) = other is ContentUriSource && other.uri == uri
-    override fun hashCode() = uri.hashCode()
+    override fun equals(other: Any?) = other is ContentUriSource && other.key == key
+    override fun hashCode() = key.hashCode()
 
     companion object {
         /** Queries display name, size, and modified date; tolerates providers that report none of them. */

@@ -127,7 +127,7 @@ object ArchiveAccess {
 
     private fun requireSeekable(s: SeekableSource?) = s ?: throw IllegalArgumentException("Seekable source required")
 
-    private fun zip(s: SeekableSource): ZipFile = ZipFile.builder().setSeekableByteChannel(s.channel()).get()
+    private fun zip(s: SeekableSource): ZipFile = BoundedZip.open(s.channel())
 
     private fun sevenZ(s: SeekableSource): SevenZFile = SevenZFile.builder().setSeekableByteChannel(s.channel()).setMaxMemoryLimitKiB(Limits.MAX_DECOMPRESSOR_MEMORY_KIB).get()
 

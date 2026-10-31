@@ -67,13 +67,13 @@ private fun SingleImage(source: FileSource, onSwitch: (ViewerId) -> Unit) {
         }
     }
     val m = model ?: return Loading()
-    ZoomableImage(m, source.name, onSwitch)
+    ZoomableImage(m, source.name, onSwitch, source.key)
 }
 
 @Composable
-private fun ZoomableImage(model: Any, description: String, onSwitch: (ViewerId) -> Unit) {
+private fun ZoomableImage(model: Any, description: String, onSwitch: (ViewerId) -> Unit, cacheKey: String? = null) {
     val context = LocalContext.current
-    var failed by remember(model) { mutableStateOf(false) }
+    var failed by remember(model, cacheKey) { mutableStateOf(false) }
     if (failed) {
         Message(
             "This image couldn't be decoded",
@@ -82,12 +82,8 @@ private fun ZoomableImage(model: Any, description: String, onSwitch: (ViewerId) 
         )
         return
     }
-    val request = remember(model) {
-        ImageRequest.Builder(context)
-            .data(model)
-            .size(Size(Limits.MAX_IMAGE_DECODE_PX, Limits.MAX_IMAGE_DECODE_PX))
-            .listener(onError = { _, _ -> failed = true })
-            .build()
+    val request = remember(model, cacheKey) {
+        imageRequest(context, model, cacheKey) { failed = true }
     }
     Box(Modifier.fillMaxSize()) {
         ZoomableAsyncImage(model = request, contentDescription = description, modifier = Modifier.fillMaxSize())
@@ -104,3 +100,12 @@ private fun siblingImages(file: File): List<File> {
     val sorted = all.sortedWith(compareBy(String.CASE_INSENSITIVE_ORDER) { it.name })
     return if (file in sorted) sorted else listOf(file)
 }
+
+/** URI strings identify provider documents; cache identity must identify the opening. */
+internal fun imageRequest(context: android.content.Context, model: Any, cacheKey: String?, onError: () -> Unit): ImageRequest =
+    ImageRequest.Builder(context)
+        .data(model)
+        .memoryCacheKey(cacheKey)
+        .size(Size(Limits.MAX_IMAGE_DECODE_PX, Limits.MAX_IMAGE_DECODE_PX))
+        .listener(onError = { _, _ -> onError() })
+        .build()

@@ -7,6 +7,8 @@ import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import com.fileviewer.app.browser.SortBy
 import com.fileviewer.app.source.FileSource
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 sealed interface Screen {
     data object Home : Screen
@@ -28,6 +30,12 @@ class AppState : ViewModel() {
     val current: Screen get() = stack.last()
 
     fun push(screen: Screen) { stack.add(screen) }
+
+    /** Retained shared-list sources are selections, not viewer sessions. */
+    suspend fun openShared(source: FileSource) {
+        val opening = withContext(Dispatchers.IO) { source.newOpening() }
+        push(Screen.Viewer(opening))
+    }
 
     fun back(): Boolean {
         if (stack.size <= 1) return false

@@ -2,6 +2,7 @@ package com.fileviewer.app.viewers.documents
 
 import com.fileviewer.app.source.LimitExceededException
 import com.fileviewer.app.source.LimitedInputStream
+import com.fileviewer.app.source.BoundedZip
 import com.fileviewer.app.source.Limits
 import com.fileviewer.app.source.readFully
 import org.apache.commons.compress.archivers.zip.ZipArchiveEntry
@@ -71,7 +72,9 @@ class DocPackage private constructor(private val zip: ZipFile) : Closeable {
         /** Takes ownership of [channel]. */
         fun open(channel: SeekableByteChannel): DocPackage {
             val zip = try {
-                ZipFile.builder().setSeekableByteChannel(channel).get()
+                BoundedZip.open(channel)
+            } catch (e: LimitExceededException) {
+                throw e
             } catch (e: IOException) {
                 channel.close()
                 throw DocumentException("This file isn't a valid document package: ${e.message}")

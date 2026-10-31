@@ -8,8 +8,12 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import com.fileviewer.app.detect.DataFormat
+import com.fileviewer.app.detect.FileKind
+import com.fileviewer.app.viewers.code.CodeViewer
 import com.fileviewer.app.source.FileSource
 import com.fileviewer.app.ui.components.Loading
+import com.fileviewer.app.ui.components.Message
 import com.fileviewer.app.viewer.ViewerId
 import com.fileviewer.app.viewer.html.HtmlFragmentView
 import com.fileviewer.app.viewers.data.DataNote
@@ -23,15 +27,20 @@ import kotlinx.coroutines.withContext
 @Composable
 fun MarkdownViewer(source: FileSource, onSwitch: (ViewerId) -> Unit) {
     WithLoadedText(source, onSwitch) { loaded ->
-        val html by produceState<String?>(null, loaded) {
-            value = withContext(Dispatchers.Default) { MarkdownHtml.render(loaded.text) }
+        val html by produceState<Result<String>?>(null, loaded) {
+            value = withContext(Dispatchers.Default) { MarkdownHtml.renderResult(loaded.text) }
         }
         val resolver = remember(source) { SiblingFiles.resolver(source) }
         Column(Modifier.fillMaxSize()) {
             DataNote("Links are shown but don't open. HTML written inside the file appears as text.", truncationNote(loaded.truncated))
             val fragment = html
             if (fragment == null) Loading()
-            else HtmlFragmentView(fragment, Modifier.fillMaxWidth().weight(1f), source.name, resolver)
+            else if (fragment.isFailure) {
+                DataNote("Showing Markdown source because the preview exceeded its budget or could not be rendered.")
+                CodeViewer(source,
+                    FileKind.Data(DataFormat.MARKDOWN), highlight = false)
+            }
+            else HtmlFragmentView(fragment.getOrThrow(), Modifier.fillMaxWidth().weight(1f), source.name, resolver)
         }
     }
 }

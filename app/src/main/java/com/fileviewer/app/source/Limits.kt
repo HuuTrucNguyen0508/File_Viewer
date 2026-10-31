@@ -11,6 +11,7 @@ object Limits {
     const val HEADER_BYTES = 4096
 
     /** Largest `name` table read from a font. */
+    const val MAX_FONT_NAME_CHARS = 4096
     const val MAX_NAME_TABLE_BYTES = 1 shl 20
     const val MAX_FONT_TABLES = 256
     const val MAX_FONT_FACES = 1024
@@ -36,7 +37,17 @@ object Limits {
     /** Permissions listed for one APK. */
     const val MAX_PERMISSIONS = 500
 
-    /** Bytes read from a Markdown, HTML, CSV or JSON file; anything past this is cut with a note. */
+    /** Weighted parser work: block starts, inline delimiters, and table cells. */
+    const val MAX_MARKDOWN_COMPLEXITY = 360_000
+    const val MARKDOWN_LINE_COST = 4
+    const val MARKDOWN_BLOCK_COST = 32
+    const val MARKDOWN_TABLE_CELL_COST = 4
+    /** Leading container nesting on one line. */
+    const val MAX_MARKDOWN_CONTAINERS = 64
+    /** Rendered HTML characters, enforced while appending. */
+    const val MAX_MARKDOWN_HTML_CHARS = 8_000_000
+
+    /** Bytes read from Markdown, HTML, CSV or JSON; excess is cut with a note. */
     const val MAX_DATA_TEXT_BYTES = 32L shl 20
 
     /** CSV and SQLite tables: rows kept in memory, columns shown, characters kept per cell. */
@@ -70,6 +81,22 @@ object Limits {
 
     /** The materialize cache is trimmed least-recently-used down to this size. */
     const val MAX_CACHE_BYTES = 1L shl 30
+
+    const val MAX_ARCHIVE_PATH_CHARS = 4096
+    const val MAX_ARCHIVE_PATH_DEPTH = 128
+    /** Room for every listed entry plus as many implied folders. */
+    const val MAX_ARCHIVE_TREE_NODES = 200_000
+
+    /** Local extra bytes counted once per referencing entry, even for shared headers. */
+    const val MAX_ZIP_LOCAL_EXTRA_BYTES = 4L shl 20
+
+    /** Extra fields in one ZIP header, ignoring local repeats. Real archives carry a handful; merging them is quadratic. */
+    const val MAX_ZIP_EXTRA_FIELDS = 64
+
+    /** Extra fields across one ZIP. Three per entry at the entry limit; ordinary writers use one or two. */
+    const val MAX_ZIP_TOTAL_EXTRA_FIELDS = 300_000
+
+    const val MAX_ZIP_DIRECTORY_BYTES = 8L shl 20
 
     const val MAX_ARCHIVE_ENTRIES = 100_000
 
@@ -124,14 +151,18 @@ object Limits {
     /** Bitmap bytes kept by the PDF page cache. */
     const val MAX_PDF_CACHE_BYTES = 96L shl 20
 
+    const val HEX_WINDOW_ROWS = 1_000_000_000
+
     const val HEX_PAGE_BYTES = 64 * 1024
 
     /** Paged text mode reads the file in chunks of about this many bytes, cut at a newline. */
     const val PAGED_TEXT_CHUNK_BYTES = 32 * 1024
 }
 
-class LimitExceededException(what: String, limit: Long) :
-    IOException("$what is larger than the ${formatLimit(limit)} limit")
+open class LimitExceededException : IOException {
+    constructor(what: String, limit: Long) : super("$what is larger than the ${formatLimit(limit)} limit")
+    constructor(message: String) : super(message)
+}
 
 private fun formatLimit(bytes: Long): String = when {
     bytes >= 1L shl 30 -> "${bytes shr 30} GB"

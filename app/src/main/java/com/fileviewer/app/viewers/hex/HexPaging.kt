@@ -8,9 +8,9 @@ class HexPaging(val fileSize: Long, val bytesPerRow: Int = 16, val pageBytes: In
         require(fileSize >= 0 && bytesPerRow > 0 && pageBytes % bytesPerRow == 0)
     }
 
-    val rowCount: Long get() = (fileSize + bytesPerRow - 1) / bytesPerRow
+    val rowCount: Long get() = fileSize / bytesPerRow + if (fileSize % bytesPerRow == 0L) 0 else 1
     val rowsPerPage: Int get() = pageBytes / bytesPerRow
-    val pageCount: Long get() = (fileSize + pageBytes - 1) / pageBytes
+    val pageCount: Long get() = fileSize / pageBytes + if (fileSize % pageBytes == 0L) 0 else 1
 
     fun rowOffset(row: Long): Long = row * bytesPerRow
     fun pageOf(row: Long): Long = row / rowsPerPage
@@ -27,6 +27,18 @@ class HexPaging(val fileSize: Long, val bytesPerRow: Int = 16, val pageBytes: In
 
     /** The row containing byte [offset], clamped to the file. */
     fun rowFor(offset: Long): Long = if (fileSize == 0L) 0 else (offset.coerceIn(0, fileSize - 1)) / bytesPerRow
+
+    /** A window starts on a row boundary and never needs an unbounded LazyColumn index. */
+    fun windowStartFor(offset: Long): Long = rowFor(offset) / Limits.HEX_WINDOW_ROWS * Limits.HEX_WINDOW_ROWS
+    fun windowRows(startRow: Long): Int = minOf(Limits.HEX_WINDOW_ROWS.toLong(), rowCount - startRow).coerceAtLeast(0).toInt()
+    fun windowLastByte(startRow: Long): Long {
+        val endRow = startRow + windowRows(startRow)
+        return if (endRow == rowCount) fileSize - 1 else rowOffset(endRow) - 1
+    }
+    fun nextWindow(startRow: Long): Long = if (rowCount - startRow > Limits.HEX_WINDOW_ROWS)
+        startRow + Limits.HEX_WINDOW_ROWS else startRow
+    fun previousWindow(startRow: Long): Long = (startRow - Limits.HEX_WINDOW_ROWS).coerceAtLeast(0)
+    fun indexFor(offset: Long): Int = (rowFor(offset) - windowStartFor(offset)).toInt()
 
     companion object {
         /** Parses "0x1F4", "1f4h", "$1F4" or decimal "500". Returns null when it isn't a number. */

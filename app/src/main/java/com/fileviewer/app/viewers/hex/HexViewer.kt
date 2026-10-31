@@ -11,6 +11,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.saveable.Saver
+import androidx.compose.runtime.saveable.rememberSaveable
 import com.fileviewer.app.source.Limits
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
@@ -66,9 +68,14 @@ private fun HexBody(src: SeekableSource) {
 private fun HexRows(src: SeekableSource, bytesPerRow: Int, digits: Int) {
     val paging = remember(src, bytesPerRow) { HexPaging(src.size, bytesPerRow) }
     val cache = remember(paging) { HexPageCache(src, paging) }
-    var windowStart by remember(paging) { mutableLongStateOf(0L) }
+    val position = rememberSaveable(saver = HexPosition.Saver) { HexPosition(0L) }
+    val restoredOffset = remember(paging) { position.offset() }
+    var windowStart by remember(paging) { mutableLongStateOf(paging.windowStartFor(restoredOffset)) }
     var targetOffset by remember(paging) { mutableStateOf<Long?>(null) }
-    val list = remember(paging, windowStart) { LazyListState() }
+    val list = remember(paging, windowStart) {
+        LazyListState(if (windowStart == paging.windowStartFor(restoredOffset)) paging.indexFor(restoredOffset) else 0)
+    }
+    position.offset = { paging.rowOffset(windowStart + list.firstVisibleItemIndex.toLong()) }
     LaunchedEffect(paging, windowStart, targetOffset) {
         targetOffset?.let { list.scrollToItem(paging.indexFor(it)); targetOffset = null }
     }
@@ -141,5 +148,13 @@ private fun HexRow(row: Long, paging: HexPaging, cache: HexPageCache, digits: In
             Text(HexPaging.formatHex(b, from, len, paging.bytesPerRow), style = MonoBody, color = p.ink, modifier = Modifier.padding(start = 12.dp))
             Text(HexPaging.formatAscii(b, from, len), style = MonoBody, color = p.family(Family.Code), modifier = Modifier.padding(start = 12.dp))
         }
+    }
+}
+
+/** Saves a byte offset rather than a screen-width-dependent row index. */
+internal class HexPosition(initial: Long) {
+    var offset: () -> Long = { initial }
+    companion object {
+        val Saver = Saver<HexPosition, Long>(save = { it.offset() }, restore = { HexPosition(it) })
     }
 }

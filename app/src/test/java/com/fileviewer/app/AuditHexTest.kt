@@ -5,6 +5,21 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class AuditHexTest {
+    @Test fun savedTopByteRestoresAcrossRowWidthsAndWindows() {
+        val position = com.fileviewer.app.viewers.hex.HexPosition(0)
+        val before = HexPaging(Long.MAX_VALUE, 8)
+        val start = before.windowStartFor(24_000_000_088L)
+        position.offset = { before.rowOffset(start + 11) }
+        val scope = object : androidx.compose.runtime.saveable.SaverScope {
+            override fun canBeSaved(value: Any) = value is Long
+        }
+        val saved = with(com.fileviewer.app.viewers.hex.HexPosition.Saver) { scope.save(position) }!!
+        val restored = com.fileviewer.app.viewers.hex.HexPosition.Saver.restore(saved)!!
+        val after = HexPaging(Long.MAX_VALUE, 16)
+        val top = after.rowOffset(after.windowStartFor(restored.offset()) + after.indexFor(restored.offset()))
+        assertTrue(restored.offset() in top until top + 16)
+        assertTrue(top > 0)
+    }
     @Test fun hexRowCountDoesNotOverflow() {
         assertEquals(Long.MAX_VALUE / 16 + 1, HexPaging(Long.MAX_VALUE).rowCount)
     }

@@ -137,6 +137,8 @@ object Limits {
     /** Bitmap bytes kept by the PDF page cache. */
     const val MAX_PDF_CACHE_BYTES = 96L shl 20
 
+    const val HEX_WINDOW_ROWS = 1_000_000_000
+
     const val HEX_PAGE_BYTES = 64 * 1024
 
     /** Paged text mode reads the file in chunks of about this many bytes, cut at a newline. */

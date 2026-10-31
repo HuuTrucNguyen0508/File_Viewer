@@ -9,7 +9,9 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.lazy.LazyListState
+import androidx.compose.runtime.LaunchedEffect
+import com.fileviewer.app.source.Limits
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.MyLocation
@@ -20,10 +22,10 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -40,7 +42,6 @@ import com.fileviewer.app.ui.theme.MonoBody
 import com.fileviewer.app.viewer.WithSeekable
 import com.fileviewer.app.viewers.code.NumberDialog
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 /** Offset / hex / ASCII rows over random-access 64 KB pages. Works on files of any size. */
@@ -65,12 +66,15 @@ private fun HexBody(src: SeekableSource) {
 private fun HexRows(src: SeekableSource, bytesPerRow: Int, digits: Int) {
     val paging = remember(src, bytesPerRow) { HexPaging(src.size, bytesPerRow) }
     val cache = remember(paging) { HexPageCache(src, paging) }
-    val list = rememberLazyListState()
-    val scope = rememberCoroutineScope()
+    var windowStart by remember(paging) { mutableLongStateOf(0L) }
+    var targetOffset by remember(paging) { mutableStateOf<Long?>(null) }
+    val list = remember(paging, windowStart) { LazyListState() }
+    LaunchedEffect(paging, windowStart, targetOffset) {
+        targetOffset?.let { list.scrollToItem(paging.indexFor(it)); targetOffset = null }
+    }
     var askOffset by remember { mutableStateOf(false) }
-    val firstOffset by remember { derivedStateOf { paging.rowOffset(list.firstVisibleItemIndex.toLong()) } }
-    // LazyColumn indexes are Int; 2^31 rows of 16 bytes covers 32 GB.
-    val rows = paging.rowCount.coerceAtMost(Int.MAX_VALUE.toLong()).toInt()
+    val firstOffset by remember(paging, list, windowStart) { derivedStateOf { paging.rowOffset(windowStart + list.firstVisibleItemIndex.toLong()) } }
+    val rows = paging.windowRows(windowStart)
 
     Column(Modifier.fillMaxSize()) {
         Row(Modifier.fillMaxWidth().heightIn(min = 44.dp).padding(start = 16.dp, end = 4.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -83,13 +87,25 @@ private fun HexRows(src: SeekableSource, bytesPerRow: Int, digits: Int) {
                 Text("Go to offset")
             }
         }
+        if (paging.rowCount > Limits.HEX_WINDOW_ROWS) {
+            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                TextButton(enabled = windowStart > 0, onClick = {
+                    windowStart = paging.previousWindow(windowStart); targetOffset = paging.rowOffset(windowStart)
+                }) { Text("Previous") }
+                Text("${HexPaging.formatOffset(paging.rowOffset(windowStart), digits)}–${HexPaging.formatOffset(paging.windowLastByte(windowStart), digits)}",
+                    style = MaterialTheme.typography.bodySmall, color = Fv.palette.muted, modifier = Modifier.weight(1f))
+                TextButton(enabled = paging.nextWindow(windowStart) != windowStart, onClick = {
+                    windowStart = paging.nextWindow(windowStart); targetOffset = paging.rowOffset(windowStart)
+                }) { Text("Next") }
+            }
+        }
         if (rows == 0) {
             Text("This file is empty.", style = MaterialTheme.typography.bodyMedium, color = Fv.palette.muted, modifier = Modifier.padding(16.dp))
             return@Column
         }
         Row(Modifier.fillMaxSize().horizontalScroll(rememberScrollState())) {
             LazyColumn(state = list, modifier = Modifier.fillMaxSize().padding(horizontal = 12.dp)) {
-                items(rows) { i -> HexRow(i.toLong(), paging, cache, digits) }
+                items(rows) { i -> HexRow(windowStart + i.toLong(), paging, cache, digits) }
             }
         }
     }
@@ -102,7 +118,8 @@ private fun HexRows(src: SeekableSource, bytesPerRow: Int, digits: Int) {
             onDismiss = { askOffset = false },
             onGo = { offset ->
                 askOffset = false
-                scope.launch { list.scrollToItem(paging.rowFor(offset).coerceAtMost(rows - 1L).toInt()) }
+                windowStart = paging.windowStartFor(offset)
+                targetOffset = offset
             },
         )
     }

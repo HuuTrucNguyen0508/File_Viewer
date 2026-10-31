@@ -89,6 +89,9 @@ object Limits {
     /** Local extra bytes counted once per referencing entry, even for shared headers. */
     const val MAX_ZIP_LOCAL_EXTRA_BYTES = 4L shl 20
 
+    /** Distinct extra-field ids in one ZIP header. Real archives carry a handful; merging them is quadratic. */
+    const val MAX_ZIP_EXTRA_FIELDS = 64
+
     const val MAX_ZIP_DIRECTORY_BYTES = 8L shl 20
 
     const val MAX_ARCHIVE_ENTRIES = 100_000

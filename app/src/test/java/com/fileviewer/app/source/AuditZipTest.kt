@@ -21,6 +21,37 @@ class AuditZipTest {
         assertThrows(LimitExceededException::class.java) { BoundedZip.open(SeekableInMemoryByteChannel(b.array())) }
     }
 
+    private fun extraFields(n: Int, fields: Int, central: Boolean, distinctIds: Int = 1): ByteArray {
+        val extra = fields * 4
+        val header = if (central) extra else 0
+        val local = if (central) 0 else extra
+        val b = ByteBuffer.allocate(30 + local + n * (46 + header) + 22).order(ByteOrder.LITTLE_ENDIAN)
+        fun fieldIds() { repeat(fields) { b.putShort((distinctIds * it).toShort()).putShort(0) } }
+        b.putInt(0x04034b50); b.putShort(28, local.toShort()); b.position(30)
+        if (!central) fieldIds()
+        repeat(n) {
+            val at = b.position(); b.putInt(0x02014b50); b.putShort(at + 30, header.toShort())
+            b.position(at + 46)
+            if (central) fieldIds()
+        }
+        b.putInt(0x06054b50).putShort(0).putShort(0).putShort(n.toShort()).putShort(n.toShort())
+            .putInt(n * (46 + header)).putInt(30 + local).putShort(0)
+        return b.array()
+    }
+
+    @Test fun distinctExtraFieldsAreBoundedInBothHeaders() {
+        for (central in listOf(false, true)) {
+            assertThrows(LimitExceededException::class.java) {
+                BoundedZip.preflight(SeekableInMemoryByteChannel(extraFields(60, 15000, central)))
+            }
+            BoundedZip.preflight(SeekableInMemoryByteChannel(extraFields(60, Limits.MAX_ZIP_EXTRA_FIELDS, central)))
+        }
+    }
+
+    @Test fun zeroPaddingFromZipalignIsNotCountedAsManyFields() {
+        BoundedZip.preflight(SeekableInMemoryByteChannel(extraFields(60, 4096, central = false, distinctIds = 0)))
+    }
+
     @Test fun unicodeNamesCommentsZip64AndEntryStreamsArePreserved() {
         val bytes = java.io.ByteArrayOutputStream()
         org.apache.commons.compress.archivers.zip.ZipArchiveOutputStream(bytes).use { out ->

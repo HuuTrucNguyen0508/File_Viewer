@@ -59,8 +59,8 @@ fun ArchiveViewer(source: FileSource, format: ArchiveFormat, onOpen: (FileSource
 
 @Composable
 private fun Listing(source: FileSource, format: ArchiveFormat, seekable: SeekableSource?, onOpen: (FileSource) -> Unit, onSwitch: (ViewerId) -> Unit) {
-    val listing by produceState<Result<ArchiveListing>?>(null, source, seekable) {
-        value = runInterruptible(Dispatchers.IO) { runCatching { ArchiveAccess.list(format, source, seekable) } }
+    val listing by produceState<Result<Pair<ArchiveListing, ArchiveTree>>?>(null, source, seekable) {
+        value = runInterruptible(Dispatchers.IO) { runCatching { ArchiveAccess.list(format, source, seekable).let { it to ArchiveTree(it.entries) } } }
     }
     val result = listing ?: return Loading()
     result.onFailure {
@@ -70,12 +70,11 @@ private fun Listing(source: FileSource, format: ArchiveFormat, seekable: Seekabl
             actions = listOf("Show info" to { onSwitch(ViewerId.Info) }, "Show hex" to { onSwitch(ViewerId.Hex) }),
         )
     }
-    result.onSuccess { Tree(source, format, it, onOpen) }
+    result.onSuccess { Tree(source, format, it.first, it.second, onOpen) }
 }
 
 @Composable
-private fun Tree(source: FileSource, format: ArchiveFormat, listing: ArchiveListing, onOpen: (FileSource) -> Unit) {
-    val tree = remember(listing) { ArchiveTree(listing.entries) }
+private fun Tree(source: FileSource, format: ArchiveFormat, listing: ArchiveListing, tree: ArchiveTree, onOpen: (FileSource) -> Unit) {
     var path by rememberSaveable(source.key) { mutableStateOf("") }
     var locked by remember { mutableStateOf<String?>(null) }
     val node = tree.find(path) ?: tree.root
@@ -86,6 +85,7 @@ private fun Tree(source: FileSource, format: ArchiveFormat, listing: ArchiveList
         val notes = listOfNotNull(
             "This is a single compressed file.".takeIf { listing.singleStream },
             "Only the first ${Limits.MAX_ARCHIVE_ENTRIES} entries are listed.".takeIf { listing.truncated },
+            "${tree.hiddenEntries} entries hidden because their paths exceed the tree limits.".takeIf { tree.hiddenEntries > 0 },
             locked?.let { "“$it” is password-protected, so it can't be opened." },
         )
         notes.forEach {

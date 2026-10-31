@@ -88,3 +88,5 @@ Playback uses ExoPlayer and the phone's own decoders. The container is always de
 | PKCS#12 (.p12, .pfx), certificate requests (.csr) | Fallback | Password-protected or not parsed; Hex and Text |
 | Executables (ELF, PE, Mach-O), class, dex, wasm, disk images | Fallback | Identified by signature in Info |
 | Unknown binary | Fallback | Hex view handles files of any size without loading them into memory |
+
+Archive folder trees hide entries whose paths exceed 4,096 characters or 128 components, or would exceed 100,000 implied nodes. The archive shows the hidden-entry count; Hex and Info remain available.

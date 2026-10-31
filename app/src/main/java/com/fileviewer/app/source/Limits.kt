@@ -71,6 +71,10 @@ object Limits {
     /** The materialize cache is trimmed least-recently-used down to this size. */
     const val MAX_CACHE_BYTES = 1L shl 30
 
+    const val MAX_ARCHIVE_PATH_CHARS = 4096
+    const val MAX_ARCHIVE_PATH_DEPTH = 128
+    const val MAX_ARCHIVE_TREE_NODES = 100_000
+
     const val MAX_ARCHIVE_ENTRIES = 100_000
 
     const val MAX_DECOMPRESSOR_MEMORY_KIB = 64 * 1024

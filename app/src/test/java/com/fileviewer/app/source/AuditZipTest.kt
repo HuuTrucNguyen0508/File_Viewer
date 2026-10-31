@@ -48,6 +48,12 @@ class AuditZipTest {
         }
     }
 
+    @Test fun repeatedCentralFieldsAreBounded() {
+        assertThrows(LimitExceededException::class.java) {
+            BoundedZip.preflight(SeekableInMemoryByteChannel(extraFields(60, 15000, central = true, distinctIds = 0)))
+        }
+    }
+
     @Test fun zeroPaddingFromZipalignIsNotCountedAsManyFields() {
         BoundedZip.preflight(SeekableInMemoryByteChannel(extraFields(60, 4096, central = false, distinctIds = 0)))
     }

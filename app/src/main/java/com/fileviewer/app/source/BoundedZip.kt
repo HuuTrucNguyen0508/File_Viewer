@@ -35,14 +35,17 @@ object BoundedZip {
         fun u32(at: Long) = read(at, 4).int.toLong() and 0xffffffffL
         fun i64(at: Long) = read(at, 8).long
         // The library merges each header's fields quadratically, so bytes alone do not bound its work.
-        fun checkExtraFields(start: Long, length: Int) {
+        // Central fields are retained with repeats. Local repeats collapse, and must be allowed,
+        // because zipalign's zero padding parses as thousands of id-0 fields.
+        fun checkExtraFields(start: Long, length: Int, countRepeats: Boolean) {
             var field = start
+            var fields = 0
             val ids = HashSet<Short>()
             while (field + 4 <= start + length) {
                 val header = read(field, 4)
-                // Distinct ids, because zipalign's zero padding parses as thousands of id-0 fields.
-                if (ids.add(header.short) && ids.size > Limits.MAX_ZIP_EXTRA_FIELDS)
-                    throw LimitExceededException("ZIP header has more than ${Limits.MAX_ZIP_EXTRA_FIELDS} kinds of extra field")
+                if (ids.add(header.short) || countRepeats) fields++
+                if (fields > Limits.MAX_ZIP_EXTRA_FIELDS)
+                    throw LimitExceededException("ZIP header has more than ${Limits.MAX_ZIP_EXTRA_FIELDS} extra fields")
                 field += 4 + (header.short.toInt() and 65535)
             }
         }
@@ -97,11 +100,11 @@ object BoundedZip {
                 }
                 if (!found) throw IOException("Missing ZIP64 offset")
             }
-            checkExtraFields(at + 46 + nameLength, extraLength)
+            checkExtraFields(at + 46 + nameLength, extraLength, countRepeats = true)
             val localHeader = read(local + 26, 4)
             val localNameLength = localHeader.short.toInt() and 65535 // skipped by the library
             val localExtraLength = localHeader.short.toInt() and 65535
-            checkExtraFields(local + 30 + localNameLength, localExtraLength)
+            checkExtraFields(local + 30 + localNameLength, localExtraLength, countRepeats = false)
             localExtras += localExtraLength
             if (localExtras > Limits.MAX_ZIP_LOCAL_EXTRA_BYTES)
                 throw LimitExceededException("ZIP local extra metadata", Limits.MAX_ZIP_LOCAL_EXTRA_BYTES)

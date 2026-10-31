@@ -10,6 +10,32 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class AuditMarkdownTest {
+    @Test fun midLineMarkersAndLongOrdinaryMarkupRender() {
+        for (shape in listOf("words " + "> ".repeat(65), "words " + " - ".repeat(65),
+            "*ordinary* ".repeat(5000))) assertTrue(MarkdownHtml.render(shape).isNotEmpty())
+    }
+    @Test fun orderedAndMixedPrefixNestingIsBounded() {
+        for (prefix in listOf("1. ", "> - 1. "))
+            assertThrows(LimitExceededException::class.java) { MarkdownHtml.render(prefix.repeat(65) + "a") }
+    }
+    @Test fun oneStrayPipeDoesNotTurnProseIntoATable() {
+        assertTrue(MarkdownHtml.render("a|b\n" + "ordinary prose\n".repeat(50000)).isNotEmpty())
+    }
+    @Test fun budgetMessageUsesWorkUnits() {
+        val error = assertThrows(LimitExceededException::class.java) { MarkdownHtml.render("- a\n".repeat(30000)) }
+        assertTrue(error.message!!.contains("work units"))
+        assertFalse(error.message!!.contains("KB"))
+    }
+    @Test fun softBreakNodesAndRealTablePaddingAreBounded() {
+        assertThrows(LimitExceededException::class.java) { MarkdownHtml.render("a\n".repeat(100000)) }
+        val table = "|a".repeat(100) + "|\n" + "|-".repeat(100) + "|\n" + "|x|\n".repeat(1000)
+        assertThrows(LimitExceededException::class.java) { MarkdownHtml.render(table) }
+    }
+    @Test(timeout = 10000) fun nearBudgetAdversarialShapesComplete() {
+        for (shape in listOf("*a* ".repeat(179900), "- a\n".repeat(9728),
+            "[".repeat(359900), "<".repeat(359900), "`".repeat(359900)))
+            assertTrue(MarkdownHtml.render(shape).isNotEmpty())
+    }
     @Test fun markdownContainersAreBounded() {
         assertThrows(LimitExceededException::class.java) { MarkdownHtml.render("- a\n".repeat(30000)) }
     }
@@ -20,8 +46,12 @@ class AuditMarkdownTest {
         }
     }
     @Test fun tablePaddingAmplificationIsBudgeted() {
-        val table = "|a".repeat(5000) + "|\n" + "|-".repeat(5000) + "|\n" + "x\n".repeat(5000)
+        val table = "|a".repeat(5000) + "|\n" + "|-".repeat(5000) + "|\n" + "|x|\n".repeat(5000)
         assertThrows(LimitExceededException::class.java) { MarkdownHtml.render(table) }
+    }
+    @Test fun pipeFreeLazyTableRowsAreAlsoBudgeted() {
+        val text = "|a".repeat(100) + "|\n" + "|-".repeat(100) + "|\n" + "ordinary prose\n".repeat(50000)
+        assertThrows(LimitExceededException::class.java) { MarkdownHtml.render(text) }
     }
     @Test fun referenceOutputAmplificationIsBounded() {
         val text = "[a]: https://example.org/" + "x".repeat(20000) + "\n\n" + "[a] ".repeat(1000)

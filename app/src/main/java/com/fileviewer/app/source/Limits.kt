@@ -37,12 +37,17 @@ object Limits {
     /** Permissions listed for one APK. */
     const val MAX_PERMISSIONS = 500
 
-    /** Bytes read from a Markdown, HTML, CSV or JSON file; anything past this is cut with a note. */
-    const val MAX_MARKDOWN_COMPLEXITY = 20_000
-    const val MAX_MARKDOWN_LINE_TOKENS = 2_000
+    /** Weighted parser work: block starts, inline delimiters, and table cells. */
+    const val MAX_MARKDOWN_COMPLEXITY = 360_000
+    const val MARKDOWN_LINE_COST = 4
+    const val MARKDOWN_BLOCK_COST = 32
+    const val MARKDOWN_TABLE_CELL_COST = 4
+    /** Leading container nesting on one line. */
     const val MAX_MARKDOWN_CONTAINERS = 64
+    /** Rendered HTML characters, enforced while appending. */
     const val MAX_MARKDOWN_HTML_CHARS = 8_000_000
 
+    /** Bytes read from Markdown, HTML, CSV or JSON; excess is cut with a note. */
     const val MAX_DATA_TEXT_BYTES = 32L shl 20
 
     /** CSV and SQLite tables: rows kept in memory, columns shown, characters kept per cell. */
@@ -81,9 +86,10 @@ object Limits {
     const val MAX_ARCHIVE_PATH_DEPTH = 128
     const val MAX_ARCHIVE_TREE_NODES = 100_000
 
-    const val MAX_ZIP_DIRECTORY_BYTES = 8L shl 20
     /** Local extra bytes counted once per referencing entry, even for shared headers. */
     const val MAX_ZIP_LOCAL_EXTRA_BYTES = 4L shl 20
+
+    const val MAX_ZIP_DIRECTORY_BYTES = 8L shl 20
 
     const val MAX_ARCHIVE_ENTRIES = 100_000
 
@@ -146,8 +152,10 @@ object Limits {
     const val PAGED_TEXT_CHUNK_BYTES = 32 * 1024
 }
 
-class LimitExceededException(what: String, limit: Long) :
-    IOException("$what is larger than the ${formatLimit(limit)} limit")
+open class LimitExceededException : IOException {
+    constructor(what: String, limit: Long) : super("$what is larger than the ${formatLimit(limit)} limit")
+    constructor(message: String) : super(message)
+}
 
 private fun formatLimit(bytes: Long): String = when {
     bytes >= 1L shl 30 -> "${bytes shr 30} GB"

@@ -8,6 +8,9 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import com.fileviewer.app.detect.DataFormat
+import com.fileviewer.app.detect.FileKind
+import com.fileviewer.app.viewers.code.CodeViewer
 import com.fileviewer.app.source.FileSource
 import com.fileviewer.app.ui.components.Loading
 import com.fileviewer.app.ui.components.Message
@@ -34,8 +37,8 @@ fun MarkdownViewer(source: FileSource, onSwitch: (ViewerId) -> Unit) {
             if (fragment == null) Loading()
             else if (fragment.isFailure) {
                 DataNote("Showing Markdown source because the preview exceeded its budget or could not be rendered.")
-                com.fileviewer.app.viewers.code.CodeViewer(source,
-                    com.fileviewer.app.detect.FileKind.Data(com.fileviewer.app.detect.DataFormat.MARKDOWN), highlight = false)
+                CodeViewer(source,
+                    FileKind.Data(DataFormat.MARKDOWN), highlight = false)
             }
             else HtmlFragmentView(fragment.getOrThrow(), Modifier.fillMaxWidth().weight(1f), source.name, resolver)
         }

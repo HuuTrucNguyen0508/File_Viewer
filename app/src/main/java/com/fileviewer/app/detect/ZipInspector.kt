@@ -1,5 +1,6 @@
 package com.fileviewer.app.detect
 
+import com.fileviewer.app.source.BoundedZip
 import com.fileviewer.app.source.Limits
 import com.fileviewer.app.source.SeekableSource
 import com.fileviewer.app.source.readFully
@@ -13,7 +14,7 @@ object ZipInspector {
 
     fun refine(seekable: SeekableSource): FileKind {
         val zip = try {
-            ZipFile.builder().setSeekableByteChannel(seekable.channel()).get()
+            BoundedZip.open(seekable.channel())
         } catch (_: Exception) {
             return FileKind.Archive(ArchiveFormat.ZIP)
         }

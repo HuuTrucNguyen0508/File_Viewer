@@ -91,3 +91,4 @@ Playback uses ExoPlayer and the phone's own decoders. The container is always de
 
 Archive folder trees hide entries whose paths exceed 4,096 characters or 128 components, or would exceed 100,000 implied nodes. The archive shows the hidden-entry count; Hex and Info remain available.
 Font metadata selects preferred name records before decoding and displays at most 4,096 characters per name, across at most eight displayed names.
+ZIPs are preflighted before indexing: at most 100,000 actual central-directory records and 8 MiB of central metadata including headers, names, extras, and comments. Unrecognized layouts above 4 MiB are rejected; smaller malformed files retain the ZIP library's existing handling. Detection falls back to plain ZIP on a limit, so Hex and Info remain reachable.

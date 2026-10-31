@@ -84,7 +84,8 @@ object Limits {
 
     const val MAX_ARCHIVE_PATH_CHARS = 4096
     const val MAX_ARCHIVE_PATH_DEPTH = 128
-    const val MAX_ARCHIVE_TREE_NODES = 100_000
+    /** Room for every listed entry plus as many implied folders. */
+    const val MAX_ARCHIVE_TREE_NODES = 200_000
 
     /** Local extra bytes counted once per referencing entry, even for shared headers. */
     const val MAX_ZIP_LOCAL_EXTRA_BYTES = 4L shl 20

@@ -14,4 +14,11 @@ class AuditTreeTest {
         val tree = ArchiveTree(listOf(ArchiveEntry("a/".repeat(300) + "x", false, 0, null, null)))
         assertTrue(tree.root.children.isEmpty())
     }
+
+    @Test fun everyListedEntryFitsAlongsideItsImpliedFolders() {
+        val entries = List(Limits.MAX_ARCHIVE_ENTRIES) { ArchiveEntry("d$it/f.txt", false, 0, null, null) }
+        val tree = ArchiveTree(entries)
+        assertEquals(0, tree.hiddenEntries)
+        assertEquals(Limits.MAX_ARCHIVE_ENTRIES, tree.root.children.size)
+    }
 }
